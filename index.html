@@ -1,309 +1,401 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <meta name="theme-color" content="#ffffff" />
-  <title>家族カレンダー</title>
-  <link rel="manifest" href="manifest.webmanifest" />
-  <style>
-    :root {
-      --bg:#f6f7f9; --card:#fff; --text:#202124; --muted:#70757a;
-      --line:#e5e7eb; --accent:#2f6fed; --danger:#d93025;
-    }
-    *{box-sizing:border-box}
-    body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans JP",sans-serif;background:var(--bg);color:var(--text)}
-    .app{max-width:980px;margin:0 auto;min-height:100vh;background:#fff}
-    header{position:sticky;top:0;z-index:10;background:#fff;border-bottom:1px solid var(--line);padding:10px 12px}
-    .topbar{display:flex;align-items:center;justify-content:space-between;gap:8px}
-    .topbar h1{font-size:20px;margin:0;white-space:nowrap}
-    .month-nav{display:flex;gap:6px;align-items:center}
-    button{font:inherit}
-    .btn{border:1px solid var(--line);background:#fff;border-radius:10px;padding:8px 11px;cursor:pointer}
-    .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
-    .btn.danger{background:#fff;color:var(--danger);border-color:#f1c1bd}
-    .month-label{font-weight:700;min-width:110px;text-align:center}
-    .week{display:grid;grid-template-columns:repeat(7,1fr);border-bottom:1px solid var(--line);background:#fafafa}
-    .week div{text-align:center;padding:7px 0;font-size:12px;color:var(--muted)}
-    .calendar{display:grid;grid-template-columns:repeat(7,1fr)}
-    .day{min-height:118px;border-right:1px solid var(--line);border-bottom:1px solid var(--line);padding:6px;cursor:pointer;background:#fff;overflow:hidden}
-    .day:nth-child(7n){border-right:none}
-    .day.other{background:#fafafa;color:#aaa}
-    .day.today .num{background:var(--accent);color:#fff;border-radius:999px;width:26px;height:26px;display:inline-flex;align-items:center;justify-content:center}
-    .num{font-size:13px;font-weight:700;margin-bottom:4px}
-    .event{font-size:11px;line-height:1.25;border-radius:5px;padding:3px 5px;margin:3px 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border-left:4px solid currentColor;background:#f7f7f7}
-    .legend{display:flex;gap:10px;flex-wrap:wrap;padding:10px 12px;border-top:1px solid var(--line);background:#fff}
-    .legend span{font-size:12px;display:inline-flex;align-items:center;gap:5px}
-    .dot{width:10px;height:10px;border-radius:50%}
-    .floating{position:fixed;right:18px;bottom:24px;width:56px;height:56px;border:none;border-radius:50%;font-size:30px;line-height:1;background:var(--accent);color:#fff;box-shadow:0 4px 15px rgba(0,0,0,.2);cursor:pointer}
-    dialog{border:none;border-radius:14px;padding:0;width:min(92vw,520px);box-shadow:0 12px 40px rgba(0,0,0,.25)}
-    dialog::backdrop{background:rgba(0,0,0,.35)}
-    .modal{padding:18px}
-    .modal h2{margin:0 0 14px;font-size:19px}
-    .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-    .field{display:flex;flex-direction:column;gap:5px;margin-bottom:12px}
-    label{font-size:12px;color:var(--muted);font-weight:600}
-    input,select,textarea{width:100%;font:inherit;border:1px solid #cfd3d8;border-radius:9px;padding:10px;background:#fff}
-    textarea{min-height:80px;resize:vertical}
-    .actions{display:flex;gap:8px;justify-content:flex-end;margin-top:14px;flex-wrap:wrap}
-    .settings{margin-top:8px;padding-top:12px;border-top:1px dashed var(--line)}
-    .setup-banner{margin:12px;padding:12px;border:1px solid #f1d58a;background:#fff8e1;border-radius:10px;font-size:13px}
-    .hidden{display:none!important}
-    @media(max-width:700px){
-      .app{max-width:none}
-      .topbar{align-items:flex-start;flex-direction:column}
-      .month-nav{width:100%;justify-content:space-between}
-      .day{min-height:86px;padding:4px}
-      .event{font-size:9px;padding:2px 3px}
-      .grid{grid-template-columns:1fr}
-      .floating{bottom:18px;right:14px}
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#ffffff">
+<title>家族カレンダー</title>
+<link rel="manifest" href="manifest.webmanifest">
+<style>
+:root{
+  --bg:#f4f6f8;--card:#fff;--text:#202124;--muted:#6b7280;--line:#e5e7eb;
+  --accent:#2563eb;--danger:#dc2626;--sun:#dc2626;--sat:#2563eb;
+  --row-h:122px;
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans JP",sans-serif;background:var(--bg);color:var(--text)}
+.app{max-width:1000px;margin:0 auto;min-height:100vh;background:#fff}
+header{position:sticky;top:0;z-index:30;background:#fff;border-bottom:1px solid var(--line);padding:10px 12px}
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:10px}
+h1{font-size:20px;margin:0}
+.month-nav{display:flex;gap:6px;align-items:center}
+.btn{border:1px solid var(--line);background:#fff;border-radius:10px;padding:8px 11px;cursor:pointer}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.danger{color:var(--danger);border-color:#fecaca}
+.month-label{font-weight:800;min-width:110px;text-align:center}
+.week{display:grid;grid-template-columns:repeat(7,1fr);background:#fafafa;border-bottom:1px solid var(--line)}
+.week div{text-align:center;padding:7px 0;font-size:12px;color:var(--muted)}
+.week div:first-child{color:var(--sun)} .week div:last-child{color:var(--sat)}
+.calendar-wrap{position:relative}
+.calendar{display:grid;grid-template-columns:repeat(7,1fr);grid-template-rows:repeat(6,var(--row-h));position:relative;z-index:1}
+.day{border-right:1px solid var(--line);border-bottom:1px solid var(--line);padding:6px;background:#fff;cursor:pointer;overflow:hidden;position:relative}
+.day:nth-child(7n){border-right:none}
+.day.other{background:#fafafa;color:#aaa}
+.day.sun .num{color:var(--sun)} .day.sat .num{color:var(--sat)}
+.day.today .num{background:var(--accent);color:#fff;border-radius:999px;width:27px;height:27px;display:inline-flex;align-items:center;justify-content:center}
+.num{font-size:13px;font-weight:800;margin-bottom:4px}
+.overlay{position:absolute;inset:0;display:grid;grid-template-columns:repeat(7,1fr);grid-template-rows:repeat(6,var(--row-h));pointer-events:none;z-index:5}
+.band{
+  height:24px;align-self:start;margin-top:34px;
+  border-radius:7px;padding:4px 8px;font-size:11px;font-weight:700;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  pointer-events:auto;cursor:pointer;box-shadow:0 1px 2px rgba(0,0,0,.08);
+  display:flex;align-items:center;justify-content:center;
+}
+.band.lane1{margin-top:62px}.band.lane2{margin-top:90px}
+.band.start{border-top-left-radius:9px;border-bottom-left-radius:9px}
+.band.end{border-top-right-radius:9px;border-bottom-right-radius:9px}
+.band.mid{border-radius:2px}
+.band.single{border-radius:9px}
+.legend{display:flex;gap:10px;flex-wrap:wrap;padding:10px 12px;border-top:1px solid var(--line);background:#fff}
+.legend span{font-size:12px;display:inline-flex;align-items:center;gap:5px}
+.dot{width:10px;height:10px;border-radius:50%}
+.floating{position:fixed;right:18px;bottom:24px;width:58px;height:58px;border:none;border-radius:50%;font-size:30px;background:var(--accent);color:#fff;box-shadow:0 4px 15px rgba(0,0,0,.2);cursor:pointer;z-index:40}
+dialog{border:none;border-radius:15px;padding:0;width:min(94vw,560px);box-shadow:0 12px 40px rgba(0,0,0,.25)}
+dialog::backdrop{background:rgba(0,0,0,.35)}
+.modal{padding:18px}.modal h2{margin:0 0 14px;font-size:19px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.field{display:flex;flex-direction:column;gap:5px;margin-bottom:12px}
+label{font-size:12px;color:var(--muted);font-weight:700}
+input,select,textarea{width:100%;font:inherit;border:1px solid #cfd3d8;border-radius:9px;padding:10px;background:#fff}
+textarea{min-height:78px;resize:vertical}
+.chips{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}
+.chip{border:1px solid var(--line);background:#fff;border-radius:10px;padding:9px 6px;text-align:center;cursor:pointer}
+.chip.active{background:#eff6ff;border-color:#93c5fd;font-weight:700}
+.toggle-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0}
+.toggle-row input{width:auto}
+.actions{display:flex;gap:8px;justify-content:flex-end;margin-top:14px;flex-wrap:wrap}
+.setup-banner{margin:12px;padding:12px;border:1px solid #f1d58a;background:#fff8e1;border-radius:10px;font-size:13px}
+.summary{font-size:12px;color:var(--muted);background:#f8fafc;border-radius:8px;padding:8px 10px;margin-bottom:12px}
+.hidden{display:none!important}
+@media(max-width:700px){
+  :root{--row-h:96px}
+  .topbar{flex-direction:column;align-items:flex-start}
+  .month-nav{width:100%;justify-content:space-between}
+  .day{padding:4px}
+  .band{height:20px;font-size:9px;padding:3px 4px;margin-top:30px}
+  .band.lane1{margin-top:53px}.band.lane2{margin-top:76px}
+  .grid{grid-template-columns:1fr}
+  .chips{grid-template-columns:repeat(2,1fr)}
+  .floating{right:14px;bottom:18px}
+}
+</style>
 </head>
 <body>
 <div class="app">
-  <header>
-    <div class="topbar">
-      <h1>家族カレンダー</h1>
-      <div class="month-nav">
-        <button class="btn" id="prevBtn">‹</button>
-        <button class="btn" id="todayBtn">今日</button>
-        <div class="month-label" id="monthLabel"></div>
-        <button class="btn" id="nextBtn">›</button>
-        <button class="btn" id="settingsBtn">設定</button>
-      </div>
+<header>
+  <div class="topbar">
+    <h1>家族カレンダー</h1>
+    <div class="month-nav">
+      <button class="btn" id="prevBtn">‹</button>
+      <button class="btn" id="todayBtn">今日</button>
+      <div class="month-label" id="monthLabel"></div>
+      <button class="btn" id="nextBtn">›</button>
+      <button class="btn" id="settingsBtn">設定</button>
     </div>
-  </header>
-
-  <div id="setupBanner" class="setup-banner">
-    初回だけ「設定」から Supabase URL と anon key を入力してください。
   </div>
+</header>
 
-  <div class="week"><div>日</div><div>月</div><div>火</div><div>水</div><div>木</div><div>金</div><div>土</div></div>
+<div id="setupBanner" class="setup-banner">初回だけ「設定」からSupabase URLとanon keyを入力してください。</div>
+
+<div class="week"><div>日</div><div>月</div><div>火</div><div>水</div><div>木</div><div>金</div><div>土</div></div>
+<div class="calendar-wrap">
   <main id="calendar" class="calendar"></main>
-  <div id="legend" class="legend"></div>
+  <div id="overlay" class="overlay"></div>
+</div>
+<div id="legend" class="legend"></div>
 </div>
 
-<button class="floating" id="addBtn" aria-label="予定を追加">＋</button>
+<button class="floating" id="addBtn">＋</button>
 
 <dialog id="eventDialog">
-  <form method="dialog" class="modal" id="eventForm">
-    <h2 id="eventTitle">予定を登録</h2>
-    <input type="hidden" id="eventId">
-    <div class="grid">
-      <div class="field">
-        <label>日付</label>
-        <input type="date" id="eventDate" required>
-      </div>
-      <div class="field">
-        <label>誰の予定</label>
-        <select id="member" required></select>
-      </div>
-    </div>
-    <div class="grid">
-      <div class="field">
-        <label>開始時間</label>
-        <input type="time" id="startTime">
-      </div>
-      <div class="field">
-        <label>終了時間</label>
-        <input type="time" id="endTime">
-      </div>
-    </div>
-    <div class="field">
-      <label>予定種類</label>
-      <select id="category">
-        <option>仕事</option><option>学校</option><option>習い事</option>
-        <option>病院</option><option>外出</option><option>その他</option>
-      </select>
-    </div>
-    <div class="field">
-      <label>予定名</label>
-      <input type="text" id="title" maxlength="80" placeholder="例：東京出張" required>
-    </div>
-    <div class="field">
-      <label>メモ</label>
-      <textarea id="memo" maxlength="500" placeholder="必要な場合だけ入力"></textarea>
-    </div>
-    <div class="actions">
-      <button type="button" class="btn danger hidden" id="deleteBtn">削除</button>
-      <button type="button" class="btn" id="cancelBtn">キャンセル</button>
-      <button type="submit" class="btn primary">保存</button>
-    </div>
-  </form>
+<form method="dialog" class="modal" id="eventForm">
+  <h2 id="eventTitle">予定を登録</h2>
+  <input type="hidden" id="eventId">
+
+  <div class="grid">
+    <div class="field"><label>開始日</label><input type="date" id="startDate" required></div>
+    <div class="field"><label>終了日</label><input type="date" id="endDate" required></div>
+  </div>
+  <div class="summary" id="rangeSummary"></div>
+
+  <div class="field"><label>誰の予定</label><select id="member" required></select></div>
+
+  <div class="toggle-row">
+    <label for="allDay">終日予定</label>
+    <input type="checkbox" id="allDay">
+  </div>
+
+  <div class="grid" id="timeFields">
+    <div class="field"><label>開始時間</label><input type="time" id="startTime"></div>
+    <div class="field"><label>終了時間</label><input type="time" id="endTime"></div>
+  </div>
+
+  <div class="field">
+    <label>予定種類</label>
+    <div class="chips" id="categoryChips"></div>
+    <input type="hidden" id="category" value="仕事">
+  </div>
+
+  <div class="field"><label>予定名</label><input type="text" id="title" maxlength="80" placeholder="例：家族旅行" required></div>
+  <div class="field"><label>メモ</label><textarea id="memo" maxlength="500"></textarea></div>
+
+  <div class="actions">
+    <button type="button" class="btn danger hidden" id="deleteBtn">削除</button>
+    <button type="button" class="btn" id="cancelBtn">キャンセル</button>
+    <button type="submit" class="btn primary">保存</button>
+  </div>
+</form>
 </dialog>
 
 <dialog id="settingsDialog">
-  <div class="modal">
-    <h2>設定</h2>
-    <div class="field"><label>Supabase URL</label><input id="supabaseUrl" placeholder="https://xxxxx.supabase.co"></div>
-    <div class="field"><label>Supabase anon key</label><textarea id="supabaseKey" placeholder="eyJ..."></textarea></div>
-    <div class="settings">
-      <div class="field"><label>家族1</label><input id="name0"></div>
-      <div class="field"><label>家族2</label><input id="name1"></div>
-      <div class="field"><label>家族3</label><input id="name2"></div>
-      <div class="field"><label>家族4</label><input id="name3"></div>
-      <div class="field"><label>この端末の初期選択</label><select id="defaultMember"></select></div>
-    </div>
-    <div class="actions">
-      <button class="btn" id="settingsCancel">閉じる</button>
-      <button class="btn primary" id="settingsSave">保存して接続</button>
-    </div>
+<div class="modal">
+  <h2>設定</h2>
+  <div class="field"><label>Supabase URL</label><input id="supabaseUrl"></div>
+  <div class="field"><label>Supabase anon key</label><textarea id="supabaseKey"></textarea></div>
+  <div class="field"><label>家族1</label><input id="name0"></div>
+  <div class="field"><label>家族2</label><input id="name1"></div>
+  <div class="field"><label>家族3</label><input id="name2"></div>
+  <div class="field"><label>家族4</label><input id="name3"></div>
+  <div class="field"><label>この端末の初期選択</label><select id="defaultMember"></select></div>
+  <div class="actions">
+    <button class="btn" id="settingsCancel">閉じる</button>
+    <button class="btn primary" id="settingsSave">保存して接続</button>
   </div>
+</div>
 </dialog>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-const COLORS = ["#2f6fed","#d93025","#188038","#f9ab00"];
-const DEFAULT_NAMES = ["父","母","子1","子2"];
-let members = JSON.parse(localStorage.getItem("family_names") || "null") || DEFAULT_NAMES;
-let current = new Date();
-current.setDate(1);
-let events = [];
-let sb = null;
-let channel = null;
+const COLORS=["#93c5fd","#f9a8d4","#86efac","#fdba74"];
+const TEXTCOLORS=["#1e3a8a","#9d174d","#166534","#9a3412"];
+const DEFAULT_NAMES=["父","母","子1","子2"];
+const CATEGORIES=["仕事","学校","習い事","病院","外出","その他"];
+let members=JSON.parse(localStorage.getItem("family_names")||"null")||DEFAULT_NAMES;
+let current=new Date(); current.setDate(1);
+let events=[],sb=null,channel=null,visibleStart=null;
+const $=id=>document.getElementById(id);
+const pad=n=>String(n).padStart(2,"0");
+const ymd=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const parseDate=s=>{const [y,m,d]=s.split("-").map(Number);return new Date(y,m-1,d)};
+function esc(v=""){return String(v).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"}[c]))}
 
-const $ = id => document.getElementById(id);
-const pad = n => String(n).padStart(2,"0");
-const ymd = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
-
+function rebuild(){
+  $("member").innerHTML=members.map((n,i)=>`<option value="${i}">${esc(n)}</option>`).join("");
+  $("defaultMember").innerHTML=members.map((n,i)=>`<option value="${i}">${esc(n)}</option>`).join("");
+  $("legend").innerHTML=members.map((n,i)=>`<span><i class="dot" style="background:${COLORS[i]}"></i>${esc(n)}</span>`).join("");
+  $("categoryChips").innerHTML=CATEGORIES.map(c=>`<button type="button" class="chip" data-cat="${c}">${c}</button>`).join("");
+  document.querySelectorAll(".chip").forEach(b=>b.onclick=()=>selectCategory(b.dataset.cat));
+}
+function selectCategory(cat){
+  $("category").value=cat;
+  document.querySelectorAll(".chip").forEach(b=>b.classList.toggle("active",b.dataset.cat===cat));
+}
 function loadSettingsUI(){
-  const url = localStorage.getItem("supabase_url") || "";
-  const key = localStorage.getItem("supabase_key") || "";
-  $("supabaseUrl").value = url;
-  $("supabaseKey").value = key;
-  members.forEach((n,i)=> $("name"+i).value=n);
-  rebuildMemberOptions();
-  $("defaultMember").value = localStorage.getItem("default_member") || "0";
-  $("setupBanner").classList.toggle("hidden", !!(url && key));
+  $("supabaseUrl").value=localStorage.getItem("supabase_url")||"";
+  $("supabaseKey").value=localStorage.getItem("supabase_key")||"";
+  members.forEach((n,i)=>$("name"+i).value=n);
+  rebuild();
+  $("defaultMember").value=localStorage.getItem("default_member")||"0";
+  $("setupBanner").classList.toggle("hidden",!!($("supabaseUrl").value&&$("supabaseKey").value));
 }
-
-function rebuildMemberOptions(){
-  $("member").innerHTML = members.map((n,i)=>`<option value="${i}">${escapeHtml(n)}</option>`).join("");
-  $("defaultMember").innerHTML = members.map((n,i)=>`<option value="${i}">${escapeHtml(n)}</option>`).join("");
-  $("legend").innerHTML = members.map((n,i)=>`<span><i class="dot" style="background:${COLORS[i]}"></i>${escapeHtml(n)}</span>`).join("");
-}
-
-function escapeHtml(v=""){
-  return v.replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"}[c]));
-}
-
 async function connect(){
-  const url = localStorage.getItem("supabase_url");
-  const key = localStorage.getItem("supabase_key");
-  if(!url || !key || !window.supabase) { render(); return; }
+  const url=localStorage.getItem("supabase_url"),key=localStorage.getItem("supabase_key");
+  if(!url||!key||!window.supabase){render();return}
   try{
-    if(channel && sb) await sb.removeChannel(channel);
-    sb = window.supabase.createClient(url,key);
+    if(channel&&sb) await sb.removeChannel(channel);
+    sb=window.supabase.createClient(url,key);
     await loadEvents();
-    channel = sb.channel("family-events")
+    channel=sb.channel("family-events-v2-band")
       .on("postgres_changes",{event:"*",schema:"public",table:"family_events"},()=>loadEvents())
       .subscribe();
-  }catch(e){
-    console.error(e);
-    alert("Supabaseへの接続に失敗しました。設定を確認してください。");
-  }
+  }catch(e){console.error(e);alert("Supabaseへの接続に失敗しました。")}
 }
-
 async function loadEvents(){
-  if(!sb){ render(); return; }
-  const first = new Date(current.getFullYear(), current.getMonth()-1, 20);
-  const last = new Date(current.getFullYear(), current.getMonth()+2, 10);
-  const {data,error} = await sb.from("family_events")
-    .select("*").gte("event_date", ymd(first)).lte("event_date", ymd(last))
+  if(!sb){render();return}
+  const first=new Date(current.getFullYear(),current.getMonth(),1);
+  visibleStart=new Date(first); visibleStart.setDate(first.getDate()-first.getDay());
+  const visibleEnd=new Date(visibleStart); visibleEnd.setDate(visibleStart.getDate()+41);
+  const {data,error}=await sb.from("family_events")
+    .select("*")
+    .lte("event_date",ymd(visibleEnd))
+    .gte("end_date",ymd(visibleStart))
     .order("event_date").order("start_time",{ascending:true});
-  if(error){ console.error(error); return; }
-  events = data || [];
+  if(error){
+    console.error(error);
+    alert("予定の読込に失敗しました。v2-migration.sqlを実行したか確認してください。");
+    return;
+  }
+  events=data||[];
   render();
 }
 
+function dayIndex(s){ return Math.round((parseDate(s)-visibleStart)/86400000); }
+
+function assignLanes(){
+  const occupied=Array.from({length:6},()=>[[],[],[]]);
+  const map=new Map();
+  const sorted=[...events].sort((a,b)=>
+    (a.event_date.localeCompare(b.event_date)) ||
+    ((b.end_date||b.event_date).localeCompare(a.end_date||a.event_date))
+  );
+  for(const e of sorted){
+    let lane=0;
+    for(;lane<3;lane++){
+      let ok=true;
+      const s=Math.max(0,dayIndex(e.event_date));
+      const ee=Math.min(41,dayIndex(e.end_date||e.event_date));
+      for(let i=s;i<=ee;i++){
+        const r=Math.floor(i/7);
+        if(occupied[r][lane].includes(i)){ok=false;break}
+      }
+      if(ok) break;
+    }
+    if(lane>2) lane=2;
+    map.set(e.id,lane);
+    const s=Math.max(0,dayIndex(e.event_date)),ee=Math.min(41,dayIndex(e.end_date||e.event_date));
+    for(let i=s;i<=ee;i++){
+      const r=Math.floor(i/7);
+      occupied[r][lane].push(i);
+    }
+  }
+  return map;
+}
+
+function renderBands(){
+  const overlay=$("overlay"); overlay.innerHTML="";
+  const laneMap=assignLanes();
+  for(const e of events){
+    const actualStart=parseDate(e.event_date);
+    const actualEnd=parseDate(e.end_date||e.event_date);
+    const visEnd=new Date(visibleStart);visEnd.setDate(visibleStart.getDate()+41);
+    const s=actualStart<visibleStart?new Date(visibleStart):actualStart;
+    const en=actualEnd>visEnd?visEnd:actualEnd;
+    if(en<s) continue;
+
+    const sIdx=Math.round((s-visibleStart)/86400000);
+    const eIdx=Math.round((en-visibleStart)/86400000);
+    const lane=laneMap.get(e.id)||0;
+    let cursor=sIdx;
+
+    while(cursor<=eIdx){
+      const row=Math.floor(cursor/7);
+      const rowEnd=row*7+6;
+      const segEnd=Math.min(eIdx,rowEnd);
+      const colStart=(cursor%7)+1;
+      const colEnd=(segEnd%7)+2;
+
+      const band=document.createElement("div");
+      const idx=Math.max(0,Math.min(3,Number(e.member_index)||0));
+      const segmentStartsActual = cursor===dayIndex(e.event_date);
+      const segmentEndsActual = segEnd===dayIndex(e.end_date||e.event_date);
+      let shape="mid";
+      if(segmentStartsActual && segmentEndsActual) shape="single";
+      else if(segmentStartsActual) shape="start";
+      else if(segmentEndsActual) shape="end";
+
+      band.className=`band lane${lane} ${shape}`;
+      band.style.gridColumn=`${colStart} / ${colEnd}`;
+      band.style.gridRow=`${row+1}`;
+      band.style.background=COLORS[idx];
+      band.style.color=TEXTCOLORS[idx];
+      band.textContent=`${e.title}（${members[idx]||"?"}）`;
+      band.title=`${e.event_date} ～ ${e.end_date||e.event_date}　${e.title}`;
+      band.onclick=()=>openEdit(e);
+      overlay.appendChild(band);
+
+      cursor=segEnd+1;
+    }
+  }
+}
+
 function render(){
-  $("monthLabel").textContent = `${current.getFullYear()}年${current.getMonth()+1}月`;
-  const cal = $("calendar"); cal.innerHTML="";
-  const start = new Date(current.getFullYear(),current.getMonth(),1);
-  start.setDate(start.getDate()-start.getDay());
-  const today = ymd(new Date());
+  $("monthLabel").textContent=`${current.getFullYear()}年${current.getMonth()+1}月`;
+  const cal=$("calendar"); cal.innerHTML="";
+  const first=new Date(current.getFullYear(),current.getMonth(),1);
+  visibleStart=new Date(first); visibleStart.setDate(first.getDate()-first.getDay());
+  const today=ymd(new Date());
 
   for(let i=0;i<42;i++){
-    const d = new Date(start); d.setDate(start.getDate()+i);
-    const key = ymd(d);
+    const d=new Date(visibleStart); d.setDate(visibleStart.getDate()+i);
+    const key=ymd(d),dow=d.getDay();
     const div=document.createElement("div");
     div.className="day";
     if(d.getMonth()!==current.getMonth()) div.classList.add("other");
     if(key===today) div.classList.add("today");
-    div.dataset.date=key;
+    if(dow===0) div.classList.add("sun"); if(dow===6) div.classList.add("sat");
     div.innerHTML=`<div class="num">${d.getDate()}</div>`;
-    const dayEvents = events.filter(e=>e.event_date===key);
-    dayEvents.forEach(e=>{
-      const ev=document.createElement("div");
-      const idx=Math.max(0,Math.min(3,Number(e.member_index)||0));
-      ev.className="event";
-      ev.style.color=COLORS[idx];
-      const time=e.start_time ? e.start_time.slice(0,5)+" " : "";
-      ev.textContent=`${time}${members[idx] || "?"} ${e.title}`;
-      ev.onclick=(x)=>{x.stopPropagation(); openEdit(e)};
-      div.appendChild(ev);
-    });
     div.onclick=()=>openNew(key);
     cal.appendChild(div);
   }
+  renderBands();
 }
-
+function updateRangeSummary(){
+  const s=$("startDate").value,e=$("endDate").value;
+  if(!s||!e){$("rangeSummary").textContent="";return}
+  if(e<s){$("rangeSummary").textContent="終了日は開始日以降にしてください。";return}
+  const days=Math.round((parseDate(e)-parseDate(s))/86400000)+1;
+  $("rangeSummary").textContent=days===1?"1日の予定です":`${days}日間を1本の帯で表示します`;
+}
+function setAllDayUI(){
+  const all=$("allDay").checked;
+  $("timeFields").classList.toggle("hidden",all);
+  if(all){$("startTime").value="";$("endTime").value=""}
+}
 function openNew(date=ymd(new Date())){
-  $("eventTitle").textContent="予定を登録";
-  $("eventId").value="";
-  $("eventDate").value=date;
-  $("member").value=localStorage.getItem("default_member") || "0";
-  $("startTime").value="";
-  $("endTime").value="";
-  $("category").value="仕事";
-  $("title").value="";
-  $("memo").value="";
-  $("deleteBtn").classList.add("hidden");
-  $("eventDialog").showModal();
+  $("eventTitle").textContent="予定を登録"; $("eventId").value="";
+  $("startDate").value=date; $("endDate").value=date;
+  $("member").value=localStorage.getItem("default_member")||"0";
+  $("allDay").checked=true; setAllDayUI();
+  $("startTime").value=""; $("endTime").value="";
+  selectCategory("仕事"); $("title").value=""; $("memo").value="";
+  $("deleteBtn").classList.add("hidden"); updateRangeSummary(); $("eventDialog").showModal();
 }
-
 function openEdit(e){
-  $("eventTitle").textContent="予定を編集";
-  $("eventId").value=e.id;
-  $("eventDate").value=e.event_date;
+  $("eventTitle").textContent="予定を編集"; $("eventId").value=e.id;
+  $("startDate").value=e.event_date; $("endDate").value=e.end_date||e.event_date;
   $("member").value=String(e.member_index);
+  $("allDay").checked=!!e.all_day; setAllDayUI();
   $("startTime").value=(e.start_time||"").slice(0,5);
   $("endTime").value=(e.end_time||"").slice(0,5);
-  $("category").value=e.category||"その他";
-  $("title").value=e.title||"";
-  $("memo").value=e.memo||"";
-  $("deleteBtn").classList.remove("hidden");
-  $("eventDialog").showModal();
+  selectCategory(e.category||"その他");
+  $("title").value=e.title||""; $("memo").value=e.memo||"";
+  $("deleteBtn").classList.remove("hidden"); updateRangeSummary(); $("eventDialog").showModal();
 }
+$("startDate").onchange=()=>{
+  if(!$("endDate").value||$("endDate").value<$("startDate").value)$("endDate").value=$("startDate").value;
+  updateRangeSummary();
+};
+$("endDate").onchange=updateRangeSummary;
+$("allDay").onchange=setAllDayUI;
 
-$("eventForm").addEventListener("submit", async e=>{
+$("eventForm").addEventListener("submit",async e=>{
   e.preventDefault();
-  if(!sb){ alert("先に「設定」からSupabase接続を設定してください。"); return; }
+  if(!sb){alert("先にSupabase接続を設定してください。");return}
+  if($("endDate").value<$("startDate").value){alert("終了日は開始日以降にしてください。");return}
   const payload={
-    event_date:$("eventDate").value,
+    event_date:$("startDate").value,
+    end_date:$("endDate").value,
     member_index:Number($("member").value),
-    start_time:$("startTime").value || null,
-    end_time:$("endTime").value || null,
+    all_day:$("allDay").checked,
+    start_time:$("allDay").checked?null:($("startTime").value||null),
+    end_time:$("allDay").checked?null:($("endTime").value||null),
     category:$("category").value,
     title:$("title").value.trim(),
     memo:$("memo").value.trim()
   };
   const id=$("eventId").value;
-  const q=id ? sb.from("family_events").update(payload).eq("id",id) : sb.from("family_events").insert(payload);
+  const q=id?sb.from("family_events").update(payload).eq("id",id):sb.from("family_events").insert(payload);
   const {error}=await q;
-  if(error){ alert("保存に失敗しました: "+error.message); return; }
-  $("eventDialog").close();
-  await loadEvents();
-});
-
-$("deleteBtn").onclick=async()=>{
-  const id=$("eventId").value;
-  if(!id || !sb) return;
-  if(!confirm("この予定を削除しますか？")) return;
-  const {error}=await sb.from("family_events").delete().eq("id",id);
-  if(error){ alert("削除に失敗しました: "+error.message); return; }
+  if(error){alert("保存に失敗しました: "+error.message);return}
   $("eventDialog").close(); await loadEvents();
+});
+$("deleteBtn").onclick=async()=>{
+  const id=$("eventId").value;if(!id||!sb)return;
+  if(!confirm("この予定を削除しますか？"))return;
+  const {error}=await sb.from("family_events").delete().eq("id",id);
+  if(error){alert("削除に失敗しました: "+error.message);return}
+  $("eventDialog").close();await loadEvents();
 };
 $("cancelBtn").onclick=()=>$("eventDialog").close();
 $("prevBtn").onclick=()=>{current.setMonth(current.getMonth()-1);loadEvents()};
@@ -312,25 +404,19 @@ $("todayBtn").onclick=()=>{current=new Date();current.setDate(1);loadEvents()};
 $("addBtn").onclick=()=>openNew();
 $("settingsBtn").onclick=()=>{loadSettingsUI();$("settingsDialog").showModal()};
 $("settingsCancel").onclick=()=>$("settingsDialog").close();
-
 $("settingsSave").onclick=async()=>{
-  members=[0,1,2,3].map(i=>($("name"+i).value.trim()||DEFAULT_NAMES[i]));
+  members=[0,1,2,3].map(i=>$("name"+i).value.trim()||DEFAULT_NAMES[i]);
   localStorage.setItem("family_names",JSON.stringify(members));
   localStorage.setItem("default_member",$("defaultMember").value);
   localStorage.setItem("supabase_url",$("supabaseUrl").value.trim());
   localStorage.setItem("supabase_key",$("supabaseKey").value.trim());
-  rebuildMemberOptions();
-  $("settingsDialog").close();
-  loadSettingsUI();
-  await connect();
+  rebuild();$("settingsDialog").close();loadSettingsUI();await connect();
 };
 
 if("serviceWorker" in navigator){
   window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js").catch(console.error));
 }
-loadSettingsUI();
-render();
-connect();
+loadSettingsUI();selectCategory("仕事");render();connect();
 </script>
 </body>
 </html>
