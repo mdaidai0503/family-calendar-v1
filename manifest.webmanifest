@@ -1,0 +1,9 @@
+{
+  "name": "家族カレンダー",
+  "short_name": "家族予定",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#ffffff",
+  "lang": "ja"
+}
