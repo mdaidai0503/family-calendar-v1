@@ -96,6 +96,32 @@ textarea{min-height:78px;resize:vertical}
 .source-preview{width:100%;max-height:60vh;object-fit:contain;background:#111;border-radius:10px;margin-top:10px}.source-inline-preview{margin-top:8px}.source-inline-preview .source-preview{max-height:340px;background:#f8fafc}
 .source-actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:8px}
 @media(max-width:700px){.source-btn{font-size:11px;padding:8px 6px}}
+
+/* v2.6.1 UI balance */
+.header-controls{display:flex;align-items:center;gap:10px;min-width:0}
+.quick-actions{display:flex;align-items:stretch;gap:6px;min-width:0}
+.quick-btn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-width:62px;min-height:58px;padding:6px 7px;line-height:1.15}
+.quick-btn span{font-size:10px;white-space:nowrap}
+.settings-quick{min-width:52px}
+@media(max-width:700px){
+  header{padding:9px 10px 8px}
+  .topbar{gap:8px}
+  h1{font-size:20px}
+  .header-controls{width:100%;display:grid;grid-template-columns:1fr;gap:7px}
+  .month-nav{width:100%;display:grid;grid-template-columns:44px 54px minmax(112px,1fr) 44px;gap:6px;justify-content:stretch}
+  .nav-btn{min-height:44px;padding:7px 6px;font-size:18px}
+  .today-btn{font-size:12px}
+  .month-label{min-width:0;font-size:17px;display:flex;align-items:center;justify-content:center}
+  .quick-actions{width:100%;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:5px}
+  .quick-btn,.settings-quick{min-width:0;width:100%;min-height:58px;padding:5px 2px;border-radius:11px;font-size:16px}
+  .quick-btn span{font-size:9px;letter-spacing:-.2px}
+  .filter-nav{height:78px;padding:7px 7px calc(8px + env(safe-area-inset-bottom));gap:5px}
+  .filter-btn{font-size:12px;padding:9px 2px;border-radius:14px;min-height:45px}
+  .filter-dot{width:9px;height:9px;margin-right:4px}
+  .floating{bottom:99px}
+  .app{padding-bottom:90px}
+}
+
 </style>
 </head>
 <body>
@@ -103,16 +129,20 @@ textarea{min-height:78px;resize:vertical}
 <header>
   <div class="topbar">
     <h1>家族カレンダー</h1>
-    <div class="month-nav">
-      <button class="btn" id="prevBtn">‹</button>
-      <button class="btn" id="todayBtn">今日</button>
-      <div class="month-label" id="monthLabel"></div>
-      <button class="btn" id="nextBtn">›</button>
-      <button class="btn source-btn" id="monthlySourceBtn">📅月間元予定</button>
-      <button class="btn source-btn" id="weeklySourceBtn">📄週間元予定</button>
-      <button class="btn import-btn" id="photoImportBtn">📷週間予定取込</button>
-      <button class="btn import-btn" id="importBtn">📥Excel取込</button>
-      <button class="btn" id="settingsBtn">設定</button>
+    <div class="header-controls">
+      <div class="month-nav">
+        <button class="btn nav-btn" id="prevBtn">‹</button>
+        <button class="btn nav-btn today-btn" id="todayBtn">今日</button>
+        <div class="month-label" id="monthLabel"></div>
+        <button class="btn nav-btn" id="nextBtn">›</button>
+      </div>
+      <div class="quick-actions">
+        <button class="btn source-btn quick-btn" id="monthlySourceBtn">📅<span>月間元予定</span></button>
+        <button class="btn source-btn quick-btn" id="weeklySourceBtn">📄<span>週間元予定</span></button>
+        <button class="btn import-btn quick-btn" id="photoImportBtn">📷<span>週間予定取込</span></button>
+        <button class="btn import-btn quick-btn" id="importBtn">📥<span>Excel取込</span></button>
+        <button class="btn quick-btn settings-quick" id="settingsBtn">⚙️<span>設定</span></button>
+      </div>
     </div>
   </div>
 </header>
