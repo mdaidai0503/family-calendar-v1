@@ -175,7 +175,7 @@ textarea{min-height:78px;resize:vertical}
 <div class="modal">
   <h2>📷 週間予定表を写真から取込</h2>
   <div class="import-note">
-    元写真を保存し、日本語OCRで読み取った内容からExcelデータを自動生成します。
+    元写真を保存し、AI画像解析で日付・時間・場所・持ち物・備考を読み取ってExcelデータを自動生成します。
     その後、昌輝（家族4）の既存予定と照合し、反映前に必ず内容を確認・修正できます。
   </div>
   <div class="field" style="margin-top:12px">
@@ -187,17 +187,7 @@ textarea{min-height:78px;resize:vertical}
   <div class="progress"><i id="photoImportProgress"></i></div>
   <div class="actions">
     <button class="btn" type="button" id="photoImportClose">閉じる</button>
-    <button class="btn primary" type="button" id="photoOcrBtn">写真を解析</button>
-  </div>
-
-  <div id="photoOcrArea" class="hidden" style="margin-top:14px;border-top:1px solid var(--line);padding-top:14px">
-    <div class="field">
-      <label>文字解析結果（必要ならここでも修正できます）</label>
-      <textarea id="photoOcrText" class="ocr-raw"></textarea>
-    </div>
-    <div class="actions">
-      <button class="btn primary" type="button" id="photoParseBtn">Excelデータに変換</button>
-    </div>
+    <button class="btn primary" type="button" id="photoOcrBtn">AIで写真を解析</button>
   </div>
 
   <div id="photoReviewArea" class="hidden" style="margin-top:14px;border-top:1px solid var(--line);padding-top:14px">
@@ -246,7 +236,6 @@ textarea{min-height:78px;resize:vertical}
 </div>
 </dialog>
 
-<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
@@ -804,39 +793,50 @@ async function applyPhotoImport(){
     $('photoApplyBtn').disabled=false;
   }
 }
-function preprocessPhotoForOCR(file){
-  return new Promise((resolve,reject)=>{
+async function imageFileToDataUrl(file){
+  return await new Promise((resolve,reject)=>{
     const img=new Image();
-    const url=URL.createObjectURL(file);
+    const u=URL.createObjectURL(file);
     img.onload=()=>{
       try{
-        const max=2200,scale=Math.min(1,max/Math.max(img.width,img.height));
+        // 文字を読みやすく保ちつつ、API送信用サイズを抑える。
+        const maxSide=2400;
+        const scale=Math.min(1,maxSide/Math.max(img.width,img.height));
         const canvas=document.createElement('canvas');
-        canvas.width=Math.round(img.width*scale);
-        canvas.height=Math.round(img.height*scale);
+        canvas.width=Math.max(1,Math.round(img.width*scale));
+        canvas.height=Math.max(1,Math.round(img.height*scale));
         const ctx=canvas.getContext('2d');
         ctx.drawImage(img,0,0,canvas.width,canvas.height);
-        const im=ctx.getImageData(0,0,canvas.width,canvas.height);
-        for(let i=0;i<im.data.length;i+=4){
-          const g=0.299*im.data[i]+0.587*im.data[i+1]+0.114*im.data[i+2];
-          const v=g>185?255:(g<85?0:Math.round((g-85)*255/100));
-          im.data[i]=im.data[i+1]=im.data[i+2]=v;
-        }
-        ctx.putImageData(im,0,0);
-        canvas.toBlob(b=>{URL.revokeObjectURL(url);b?resolve(b):reject(new Error('画像変換に失敗しました。'))},'image/jpeg',0.92);
-      }catch(e){URL.revokeObjectURL(url);reject(e)}
+        URL.revokeObjectURL(u);
+        resolve(canvas.toDataURL('image/jpeg',0.92));
+      }catch(e){URL.revokeObjectURL(u);reject(e)}
     };
-    img.onerror=()=>{URL.revokeObjectURL(url);reject(new Error('画像を開けません。'))};
-    img.src=url;
+    img.onerror=()=>{URL.revokeObjectURL(u);reject(new Error('画像を開けません。'))};
+    img.src=u;
   });
+}
+
+function blocksFromAI(data){
+  const rows=Array.isArray(data?.blocks)?data.blocks:[];
+  return rows.map(b=>({
+    start:String(b.start_date||''),
+    end:String(b.end_date||b.start_date||''),
+    title:String(b.title||''),
+    location:String(b.location||''),
+    startTime:String(b.start_time||''),
+    endTime:String(b.end_time||''),
+    schedule:String(b.schedule||''),
+    belongings:String(b.belongings||''),
+    notes:String(b.notes||''),
+    matches:[],enabled:true
+  })).filter(b=>/^\d{4}-\d{2}-\d{2}$/.test(b.start)&&/^\d{4}-\d{2}-\d{2}$/.test(b.end));
 }
 
 $('photoImportBtn').onclick=()=>{
   $('photoImportFile').value='';
   $('photoImportPreview').classList.add('hidden');
-  $('photoOcrArea').classList.add('hidden');
   $('photoReviewArea').classList.add('hidden');
-  $('photoImportStatus').textContent='写真を選択してください。';
+  $('photoImportStatus').textContent='週間予定表の写真を選択してください。';
   $('photoImportProgress').style.width='0%';
   photoSourceFile=null;photoParsedBlocks=[];photoGeneratedExcelFile=null;photoSourceUploaded=false;
   $('photoImportDialog').showModal();
@@ -848,39 +848,32 @@ $('photoImportFile').onchange=e=>{
   const url=URL.createObjectURL(photoSourceFile);
   $('photoImportPreview').src=url;
   $('photoImportPreview').classList.remove('hidden');
-  $('photoImportStatus').textContent='写真を選択しました。「写真を解析」を押してください。';
+  $('photoImportStatus').textContent='写真を選択しました。「AIで写真を解析」を押してください。';
 };
 $('photoOcrBtn').onclick=async()=>{
   if(!photoSourceFile){alert('週間予定表の写真を選択してください。');return}
-  if(!window.Tesseract){alert('OCRライブラリを読み込めませんでした。インターネット接続を確認してください。');return}
+  if(!sb){alert('Supabaseへ接続されていません。設定を確認してください。');return}
   $('photoOcrBtn').disabled=true;
-  $('photoImportStatus').textContent='写真を補正して日本語OCRを実行しています。初回は少し時間がかかります…';
+  $('photoReviewArea').classList.add('hidden');
+  $('photoImportProgress').style.width='20%';
+  $('photoImportStatus').textContent='AI画像解析用に写真を準備しています…';
   try{
-    const processed=await preprocessPhotoForOCR(photoSourceFile);
-    const result=await Tesseract.recognize(processed,'jpn+eng',{
-      logger:m=>{
-        if(typeof m.progress==='number')$('photoImportProgress').style.width=Math.round(m.progress*100)+'%';
-        if(m.status)$('photoImportStatus').textContent=`解析中：${m.status}`;
+    const imageDataUrl=await imageFileToDataUrl(photoSourceFile);
+    $('photoImportProgress').style.width='40%';
+    $('photoImportStatus').textContent='AIが予定表を解析しています…';
+    const {data,error}=await sb.functions.invoke('analyze-schedule',{
+      body:{
+        image_data_url:imageDataUrl,
+        current_year:current.getFullYear(),
+        member_name:members[PHOTO_MAKI_INDEX]||'昌輝'
       }
     });
-    $('photoOcrText').value=normalizePhotoOCRText(result.data.text||'');
-    $('photoOcrArea').classList.remove('hidden');
-    $('photoImportStatus').textContent='文字解析が完了しました。「Excelデータに変換」を押してください。';
-  }catch(err){
-    console.error(err);
-    alert('写真解析に失敗しました: '+(err.message||err));
-  }finally{
-    $('photoOcrBtn').disabled=false;
-  }
-};
-$('photoParseBtn').onclick=async()=>{
-  try{
-    photoParsedBlocks=parseThunderbirdsPhotoOCR($('photoOcrText').value);
-    if(!photoParsedBlocks.length){
-      alert('日付を読み取れませんでした。OCR結果の日付を確認・修正してください。');
-      return;
-    }
-    $('photoImportStatus').textContent=`${photoParsedBlocks.length}個の日付ブロックをExcel形式へ変換し、既存予定と照合しています…`;
+    if(error)throw error;
+    if(!data?.ok)throw new Error(data?.error||'AI解析結果を取得できませんでした。');
+    photoParsedBlocks=blocksFromAI(data);
+    if(!photoParsedBlocks.length)throw new Error('予定の日付を認識できませんでした。');
+    $('photoImportProgress').style.width='70%';
+    $('photoImportStatus').textContent=`AI解析完了：${photoParsedBlocks.length}ブロック。既存予定と照合しています…`;
     await matchPhotoBlocks(photoParsedBlocks);
     renderPhotoReview();
     $('photoReviewArea').classList.remove('hidden');
@@ -888,10 +881,15 @@ $('photoParseBtn').onclick=async()=>{
     photoGeneratedExcelFile=makePhotoExcelFile(photoParsedBlocks);
     await uploadPhotoSourceIfNeeded();
     const matched=photoParsedBlocks.reduce((n,b)=>n+b.matches.length,0);
-    $('photoImportStatus').textContent=`Excel変換完了：${photoParsedBlocks.length}ブロック / 既存予定一致 ${matched}件。内容を確認してください。元写真は保存済みです。`;
+    $('photoImportProgress').style.width='100%';
+    $('photoImportStatus').textContent=`AI解析・Excel変換完了：${photoParsedBlocks.length}ブロック / 既存予定一致 ${matched}件。内容を確認して反映してください。元写真は保存済みです。`;
   }catch(err){
     console.error(err);
-    alert('Excel変換・照合に失敗しました: '+(err.message||err));
+    $('photoImportProgress').style.width='0%';
+    $('photoImportStatus').textContent='AI解析に失敗しました。';
+    alert('AI画像解析に失敗しました: '+(err.message||err));
+  }finally{
+    $('photoOcrBtn').disabled=false;
   }
 };
 $('photoExcelDownloadBtn').onclick=()=>{
