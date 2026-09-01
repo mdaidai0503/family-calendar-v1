@@ -93,7 +93,7 @@ textarea{min-height:78px;resize:vertical}
 .source-card{border:1px solid var(--line);border-radius:12px;padding:11px;background:#fff}
 .source-card-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
 .source-meta{font-size:12px;color:var(--muted);margin-top:4px}
-.source-preview{width:100%;max-height:60vh;object-fit:contain;background:#111;border-radius:10px;margin-top:10px}
+.source-preview{width:100%;max-height:60vh;object-fit:contain;background:#111;border-radius:10px;margin-top:10px}.source-inline-preview{margin-top:8px}.source-inline-preview .source-preview{max-height:340px;background:#f8fafc}
 .source-actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:8px}
 @media(max-width:700px){.source-btn{font-size:11px;padding:8px 6px}}
 </style>
@@ -110,7 +110,8 @@ textarea{min-height:78px;resize:vertical}
       <button class="btn" id="nextBtn">›</button>
       <button class="btn source-btn" id="monthlySourceBtn">📅月間元予定</button>
       <button class="btn source-btn" id="weeklySourceBtn">📄週間元予定</button>
-      <button class="btn import-btn" id="importBtn">📥Excel予定表取込</button>
+      <button class="btn import-btn" id="photoImportBtn">📷週間予定取込</button>
+      <button class="btn import-btn" id="importBtn">📥Excel取込</button>
       <button class="btn" id="settingsBtn">設定</button>
     </div>
   </div>
@@ -169,6 +170,50 @@ textarea{min-height:78px;resize:vertical}
 </form>
 </dialog>
 
+
+<dialog id="photoImportDialog">
+<div class="modal">
+  <h2>📷 週間予定表を写真から取込</h2>
+  <div class="import-note">
+    元写真を保存し、日本語OCRで読み取った内容からExcelデータを自動生成します。
+    その後、昌輝（家族4）の既存予定と照合し、反映前に必ず内容を確認・修正できます。
+  </div>
+  <div class="field" style="margin-top:12px">
+    <label>週間予定表の写真</label>
+    <input id="photoImportFile" type="file" accept="image/*">
+  </div>
+  <img id="photoImportPreview" class="import-preview hidden" alt="週間予定表プレビュー">
+  <div id="photoImportStatus" class="import-status">写真を選択してください。</div>
+  <div class="progress"><i id="photoImportProgress"></i></div>
+  <div class="actions">
+    <button class="btn" type="button" id="photoImportClose">閉じる</button>
+    <button class="btn primary" type="button" id="photoOcrBtn">写真を解析</button>
+  </div>
+
+  <div id="photoOcrArea" class="hidden" style="margin-top:14px;border-top:1px solid var(--line);padding-top:14px">
+    <div class="field">
+      <label>文字解析結果（必要ならここでも修正できます）</label>
+      <textarea id="photoOcrText" class="ocr-raw"></textarea>
+    </div>
+    <div class="actions">
+      <button class="btn primary" type="button" id="photoParseBtn">Excelデータに変換</button>
+    </div>
+  </div>
+
+  <div id="photoReviewArea" class="hidden" style="margin-top:14px;border-top:1px solid var(--line);padding-top:14px">
+    <strong>Excel変換結果・反映内容の確認</strong>
+    <div class="import-note" style="margin-top:8px">
+      この表が自動生成されるExcelの内容です。誤読があればここで直してから反映してください。
+    </div>
+    <div id="photoReviewList" class="review-list"></div>
+    <div class="actions">
+      <button class="btn" type="button" id="photoExcelDownloadBtn">Excelを保存</button>
+      <button class="btn primary" type="button" id="photoApplyBtn">確認した予定を反映</button>
+    </div>
+  </div>
+</div>
+</dialog>
+
 <dialog id="importDialog"><div class="modal"><h2>📥 サンダーバーズ予定表 Excel取込</h2><div class="import-note">昌輝（家族4）の既存「サンダーバーズユース」予定に、Excelの「日付・予定・場所・時間・内容・持ち物・備考」を反映します。反映前に必ず内容を確認できます。</div><div class="field" style="margin-top:12px"><label>週間予定表Excel</label><input id="importFile" type="file" accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"></div><div id="importStatus" class="import-status">Excelファイルを選択してください。</div><div class="actions"><button class="btn" type="button" id="importClose">閉じる</button><button class="btn primary" type="button" id="excelReadBtn">Excelを読み取る</button></div><div id="reviewArea" class="hidden" style="margin-top:14px;border-top:1px solid var(--line);padding-top:14px"><strong>反映内容の確認</strong><div id="reviewList" class="review-list"></div><div class="actions"><button class="btn primary" type="button" id="applyImportBtn">チェックした予定を反映</button></div></div></div></dialog>
 
 <dialog id="sourceDialog">
@@ -201,6 +246,7 @@ textarea{min-height:78px;resize:vertical}
 </div>
 </dialog>
 
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
@@ -498,13 +544,44 @@ async function loadSourceList(type){
   currentSourceType=type;
   const range=monthRange();
   $('sourceDialogTitle').textContent=type==='monthly'?'📅 月間元予定':'📄 週間元予定';
-  $('sourceDialogNote').textContent=type==='monthly'?'表示中の月の月間予定表ファイルを保存・参照できます。':'表示中の月に関係する週間予定表の元Excelです。Excel取込時に自動保存されます。';
+  $('sourceDialogNote').textContent=type==='monthly'
+    ?'表示中の月の月間予定表ファイルを保存・参照できます。'
+    :'写真取込時に保存した元の週間予定表写真です。写真をそのまま確認できます。';
   $('monthlyUploadArea').classList.toggle('hidden',type!=='monthly');
-  $('sourceStatus').textContent='元予定表を読み込んでいます…'; $('sourceList').innerHTML='';
-  let q=sb.from('schedule_sources').select('*').eq('member_index',MAKI_INDEX).eq('source_type',type).lte('period_start',range.end).gte('period_end',range.start).order('created_at',{ascending:false});
-  const {data,error}=await q;if(error)throw error;
-  const rows=data||[];$('sourceStatus').textContent=rows.length?`${rows.length}件あります。`:'この月の元予定表はまだありません。';
-  for(const r of rows){const c=document.createElement('div');c.className='source-card';const label=r.source_type==='monthly'?'月間予定表':'週間予定表';c.innerHTML=`<div class="source-card-head"><strong>${esc(label)}</strong><button class="btn primary source-open" type="button">開く</button></div><div class="source-meta">${esc(r.period_start)} ～ ${esc(r.period_end)}<br>${esc(r.file_name||'')}</div>`;c.querySelector('.source-open').onclick=async()=>{try{await openSourceImage(r.file_path)}catch(e){alert('元ファイルを開けません: '+(e.message||e))}};$('sourceList').appendChild(c)}
+  $('sourceStatus').textContent='元予定表を読み込んでいます…';
+  $('sourceList').innerHTML='';
+  let q=sb.from('schedule_sources').select('*')
+    .eq('member_index',MAKI_INDEX).eq('source_type',type)
+    .lte('period_start',range.end).gte('period_end',range.start)
+    .order('created_at',{ascending:false});
+  const {data,error}=await q;
+  if(error)throw error;
+  let rows=data||[];
+  if(type==='weekly'){
+    rows=rows.filter(r=>/\.(jpe?g|png|heic|webp)$/i.test(r.file_name||r.file_path||''));
+  }
+  $('sourceStatus').textContent=rows.length?`${rows.length}件あります。`:'この月の元予定表はまだありません。';
+
+  for(const r of rows){
+    const c=document.createElement('div');
+    c.className='source-card';
+    const label=r.source_type==='monthly'?'月間予定表':'週間予定表';
+    c.innerHTML=`<div class="source-card-head"><strong>${esc(label)}</strong><button class="btn primary source-open" type="button">大きく開く</button></div>
+      <div class="source-meta">${esc(r.period_start)} ～ ${esc(r.period_end)}<br>${esc(r.file_name||'')}</div>
+      <div class="source-inline-preview"></div>`;
+    try{
+      const {data:signed,error:signedErr}=await sb.storage.from(SOURCE_BUCKET).createSignedUrl(r.file_path,300);
+      if(signedErr)throw signedErr;
+      if(/\.(jpe?g|png|heic|webp)$/i.test(r.file_name||r.file_path||'')){
+        c.querySelector('.source-inline-preview').innerHTML=`<img class="source-preview" src="${signed.signedUrl}" alt="元予定表">`;
+      }
+      c.querySelector('.source-open').onclick=()=>window.open(signed.signedUrl,'_blank','noopener');
+    }catch(e){
+      c.querySelector('.source-inline-preview').textContent='プレビューを表示できません。';
+      c.querySelector('.source-open').onclick=async()=>{try{await openSourceImage(r.file_path)}catch(err){alert('元ファイルを開けません: '+(err.message||err))}};
+    }
+    $('sourceList').appendChild(c);
+  }
 }
 async function showSourceDialog(type){
   if(!sb){alert('先にSupabaseへ接続してください。');return}
@@ -515,6 +592,318 @@ $('monthlySourceBtn').onclick=()=>showSourceDialog('monthly');
 $('weeklySourceBtn').onclick=()=>showSourceDialog('weekly');
 $('sourceCloseBtn').onclick=()=>$('sourceDialog').close();
 $('monthlySourceUploadBtn').onclick=async()=>{const f=$('monthlySourceFile').files&&$('monthlySourceFile').files[0];if(!f){alert('月間予定表のファイルを選択してください。');return}const r=monthRange();$('monthlySourceUploadBtn').disabled=true;$('sourceStatus').textContent='月間予定表を保存しています…';try{await uploadSourceFile(f,'monthly',r.start,r.end);$('monthlySourceFile').value='';await loadSourceList('monthly');alert('月間予定表の元ファイルを保存しました。')}catch(e){console.error(e);alert('保存に失敗しました: '+(e.message||e))}finally{$('monthlySourceUploadBtn').disabled=false}};
+
+
+const PHOTO_MAKI_INDEX=3;
+let photoSourceFile=null;
+let photoParsedBlocks=[];
+let photoGeneratedExcelFile=null;
+let photoSourceUploaded=false;
+
+function normalizePhotoOCRText(s){
+  const fw='０１２３４５６７８９';
+  s=String(s||'').replace(/[０-９]/g,c=>String(fw.indexOf(c)));
+  return s.replace(/：/g,':').replace(/＠/g,'@').replace(/[～~]/g,'〜')
+    .replace(/[\u00A0\t]+/g,' ').replace(/[ ]{2,}/g,' ').trim();
+}
+function isoPhotoDate(y,m,d){return `${y}-${pad(m)}-${pad(d)}`}
+
+function photoSection(text,label,nextLabels){
+  const escLabel=label.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+  const next=nextLabels.map(x=>x.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')).join('|');
+  const re=new RegExp(escLabel+'\\s*[:：]?\\s*([\\s\\S]*?)(?=\\n\\s*(?:'+next+')\\s*[:：]?|$)','i');
+  const m=String(text||'').match(re);
+  return m?m[1].trim():'';
+}
+function detectTitleFromBlock(text){
+  const candidates=['3年生引退試合','引退試合','練習試合','地区新人大会','県大会','サンダーバーズカップ','練習','休み'];
+  return candidates.find(x=>String(text||'').includes(x))||'サンダーバーズユース';
+}
+function detectLocationFromBlock(text){
+  const s=String(text||'');
+  const m=s.match(/([^\n、。|｜]{0,18}(?:中学校|中学|球場|グラウンド|体育館|学校))/);
+  return m?m[1].replace(/^[^\p{L}\p{N}]+/u,'').trim():'';
+}
+function extractPhotoTimes(text){
+  const out=[];
+  const re=/(\d{1,2})\s*[:.]\s*(\d{2})\s*([^\n]*)/g;
+  let m;
+  while((m=re.exec(String(text||'')))!==null){
+    const hh=String(Math.min(23,+m[1])).padStart(2,'0');
+    const mm=String(Math.min(59,+m[2])).padStart(2,'0');
+    out.push({time:`${hh}:${mm}`,text:(m[3]||'').trim()});
+  }
+  return out;
+}
+function parseThunderbirdsPhotoOCR(raw){
+  const text=normalizePhotoOCRText(raw);
+  const year=current.getFullYear();
+  const dateRe=/(\d{1,2})月\s*(\d{1,2})日[^\n]*?(?:[〜\-]\s*(?:(\d{1,2})月\s*)?(\d{1,2})日)?[^\n]*/g;
+  let hits=[],m;
+  while((m=dateRe.exec(text))!==null){
+    hits.push({
+      index:m.index,header:m[0],
+      month:+m[1],day:+m[2],
+      endMonth:m[3]?+m[3]:+m[1],
+      endDay:m[4]?+m[4]:+m[2]
+    });
+  }
+  const blocks=[];
+  for(let i=0;i<hits.length;i++){
+    const h=hits[i];
+    const body=text.slice(h.index+h.header.length,i+1<hits.length?hits[i+1].index:text.length).trim();
+    const combined=(h.header+'\n'+body).trim();
+    const times=extractPhotoTimes(body);
+    const belongings=photoSection(combined,'持ち物',['備考','連絡','その他']);
+    let notes=photoSection(combined,'備考',['持ち物','連絡','その他']);
+    if(!notes){
+      const noteLines=combined.split(/\n+/).filter(x=>/雨|水分|ユニフォーム|連絡|暑/.test(x));
+      notes=noteLines.join('\n');
+    }
+    blocks.push({
+      start:isoPhotoDate(year,h.month,h.day),
+      end:isoPhotoDate(year,h.endMonth,h.endDay),
+      title:detectTitleFromBlock(combined),
+      location:detectLocationFromBlock(combined),
+      startTime:times[0]?.time||'',
+      endTime:times.length?times[times.length-1].time:'',
+      schedule:times.map(x=>`${x.time} ${x.text}`.trim()).join('\n'),
+      belongings:belongings,
+      notes:notes,
+      matches:[],enabled:true
+    });
+  }
+  return blocks;
+}
+function expandPhotoBlocksForExcel(blocks){
+  const rows=[];
+  for(const b of blocks){
+    const sd=parseDate(b.start),ed=parseDate(b.end);
+    for(let d=new Date(sd); d<=ed; d.setDate(d.getDate()+1)){
+      rows.push({
+        '日付':ymd(d),
+        '曜日':['日','月','火','水','木','金','土'][d.getDay()],
+        '予定':b.title||'',
+        '場所':b.location||'',
+        '時間・内容':b.schedule||'',
+        '持ち物':b.belongings||'',
+        '備考':b.notes||''
+      });
+    }
+  }
+  return rows;
+}
+function makePhotoExcelFile(blocks){
+  const rows=expandPhotoBlocksForExcel(blocks);
+  const ws=XLSX.utils.json_to_sheet(rows,{header:['日付','曜日','予定','場所','時間・内容','持ち物','備考']});
+  ws['!cols']=[{wch:12},{wch:6},{wch:22},{wch:18},{wch:42},{wch:38},{wch:48}];
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,'予定表');
+  const arr=XLSX.write(wb,{bookType:'xlsx',type:'array'});
+  const start=blocks.map(x=>x.start).sort()[0]||ymd(new Date());
+  const end=blocks.map(x=>x.end).sort().slice(-1)[0]||start;
+  return new File([arr],`サンダーバーズユース_週間予定_${start}_${end}.xlsx`,{
+    type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+  });
+}
+async function matchPhotoBlocks(blocks){
+  for(const b of blocks){
+    const {data,error}=await sb.from('family_events').select('*')
+      .eq('member_index',PHOTO_MAKI_INDEX)
+      .gte('event_date',b.start).lte('event_date',b.end)
+      .order('event_date');
+    if(error)throw error;
+    let candidates=(data||[]).filter(e=>String(e.memo||'').includes('サンダーバーズユース'));
+    if(candidates.length>1&&b.title){
+      const nt=normTitle(b.title);
+      const narrowed=candidates.filter(e=>{
+        const et=normTitle(e.title);
+        return et===nt||et.includes(nt)||nt.includes(et);
+      });
+      if(narrowed.length)candidates=narrowed;
+    }
+    b.matches=candidates;
+  }
+}
+function renderPhotoReview(){
+  const list=$('photoReviewList');
+  list.innerHTML='';
+  photoParsedBlocks.forEach((b,i)=>{
+    const card=document.createElement('div');
+    card.className='review-card';
+    const mt=b.matches.length
+      ?`${b.matches.length}件一致：${b.matches.map(x=>`${x.event_date} ${x.title}`).join(' / ')}`
+      :'一致する既存予定なし';
+    card.innerHTML=`<div class="review-head">
+      <strong>${esc(b.start)}${b.end!==b.start?' ～ '+esc(b.end):''}　${esc(b.title||'')}</strong>
+      <label style="display:flex;gap:5px;align-items:center"><input style="width:auto" type="checkbox" class="p-enabled" data-i="${i}" ${b.matches.length?'checked':''}>反映</label>
+      </div>
+      <div class="${b.matches.length?'match-ok':'match-ng'}">${esc(mt)}</div>
+      <div class="review-grid" style="margin-top:8px">
+        <div class="field"><label>開始時間</label><input class="p-start" data-i="${i}" type="time" value="${esc(b.startTime)}"></div>
+        <div class="field"><label>終了時間</label><input class="p-end" data-i="${i}" type="time" value="${esc(b.endTime)}"></div>
+      </div>
+      <div class="field"><label>予定</label><input class="p-title" data-i="${i}" value="${esc(b.title)}"></div>
+      <div class="field"><label>場所</label><input class="p-location" data-i="${i}" value="${esc(b.location)}"></div>
+      <div class="field"><label>当日の予定</label><textarea class="p-schedule" data-i="${i}">${esc(b.schedule)}</textarea></div>
+      <div class="field"><label>持ち物</label><textarea class="p-belongings" data-i="${i}">${esc(b.belongings)}</textarea></div>
+      <div class="field"><label>備考</label><textarea class="p-notes" data-i="${i}">${esc(b.notes)}</textarea></div>`;
+    list.appendChild(card);
+  });
+}
+function collectPhotoEdits(){
+  document.querySelectorAll('.p-enabled').forEach(el=>photoParsedBlocks[+el.dataset.i].enabled=el.checked);
+  document.querySelectorAll('.p-start').forEach(el=>photoParsedBlocks[+el.dataset.i].startTime=el.value);
+  document.querySelectorAll('.p-end').forEach(el=>photoParsedBlocks[+el.dataset.i].endTime=el.value);
+  document.querySelectorAll('.p-title').forEach(el=>photoParsedBlocks[+el.dataset.i].title=el.value.trim());
+  document.querySelectorAll('.p-location').forEach(el=>photoParsedBlocks[+el.dataset.i].location=el.value.trim());
+  document.querySelectorAll('.p-schedule').forEach(el=>photoParsedBlocks[+el.dataset.i].schedule=el.value.trim());
+  document.querySelectorAll('.p-belongings').forEach(el=>photoParsedBlocks[+el.dataset.i].belongings=el.value.trim());
+  document.querySelectorAll('.p-notes').forEach(el=>photoParsedBlocks[+el.dataset.i].notes=el.value.trim());
+}
+async function uploadPhotoSourceIfNeeded(){
+  if(photoSourceUploaded||!photoSourceFile||!photoParsedBlocks.length)return;
+  const ps=photoParsedBlocks.map(x=>x.start).sort()[0];
+  const pe=photoParsedBlocks.map(x=>x.end).sort().slice(-1)[0];
+  await uploadSourceFile(photoSourceFile,'weekly',ps,pe);
+  photoSourceUploaded=true;
+}
+async function applyPhotoImport(){
+  collectPhotoEdits();
+  const targets=photoParsedBlocks.filter(b=>b.enabled&&b.matches.length);
+  if(!targets.length){alert('反映できる予定がありません。');return}
+  $('photoApplyBtn').disabled=true;
+  $('photoImportStatus').textContent='カレンダーへ反映し、Excelを保存しています…';
+  try{
+    let count=0;
+    for(const b of targets){
+      for(const e of b.matches){
+        const payload={memo:buildImportedMemo(e.memo,b)};
+        if(b.startTime||b.endTime){
+          payload.all_day=false;
+          payload.start_time=b.startTime||null;
+          payload.end_time=b.endTime||null;
+        }
+        const {error}=await sb.from('family_events').update(payload).eq('id',e.id);
+        if(error)throw error;
+        count++;
+      }
+    }
+    photoGeneratedExcelFile=makePhotoExcelFile(photoParsedBlocks);
+    const ps=photoParsedBlocks.map(x=>x.start).sort()[0];
+    const pe=photoParsedBlocks.map(x=>x.end).sort().slice(-1)[0];
+    await uploadSourceFile(photoGeneratedExcelFile,'weekly',ps,pe);
+    await uploadPhotoSourceIfNeeded();
+    await loadEvents();
+    $('photoImportStatus').textContent=`${count}件へ反映しました。元写真と自動生成Excelを保存済みです。`;
+    alert(`${count}件の予定へ反映しました。元写真は「週間元予定」から確認できます。`);
+  }catch(err){
+    console.error(err);
+    alert('反映に失敗しました: '+(err.message||err));
+  }finally{
+    $('photoApplyBtn').disabled=false;
+  }
+}
+function preprocessPhotoForOCR(file){
+  return new Promise((resolve,reject)=>{
+    const img=new Image();
+    const url=URL.createObjectURL(file);
+    img.onload=()=>{
+      try{
+        const max=2200,scale=Math.min(1,max/Math.max(img.width,img.height));
+        const canvas=document.createElement('canvas');
+        canvas.width=Math.round(img.width*scale);
+        canvas.height=Math.round(img.height*scale);
+        const ctx=canvas.getContext('2d');
+        ctx.drawImage(img,0,0,canvas.width,canvas.height);
+        const im=ctx.getImageData(0,0,canvas.width,canvas.height);
+        for(let i=0;i<im.data.length;i+=4){
+          const g=0.299*im.data[i]+0.587*im.data[i+1]+0.114*im.data[i+2];
+          const v=g>185?255:(g<85?0:Math.round((g-85)*255/100));
+          im.data[i]=im.data[i+1]=im.data[i+2]=v;
+        }
+        ctx.putImageData(im,0,0);
+        canvas.toBlob(b=>{URL.revokeObjectURL(url);b?resolve(b):reject(new Error('画像変換に失敗しました。'))},'image/jpeg',0.92);
+      }catch(e){URL.revokeObjectURL(url);reject(e)}
+    };
+    img.onerror=()=>{URL.revokeObjectURL(url);reject(new Error('画像を開けません。'))};
+    img.src=url;
+  });
+}
+
+$('photoImportBtn').onclick=()=>{
+  $('photoImportFile').value='';
+  $('photoImportPreview').classList.add('hidden');
+  $('photoOcrArea').classList.add('hidden');
+  $('photoReviewArea').classList.add('hidden');
+  $('photoImportStatus').textContent='写真を選択してください。';
+  $('photoImportProgress').style.width='0%';
+  photoSourceFile=null;photoParsedBlocks=[];photoGeneratedExcelFile=null;photoSourceUploaded=false;
+  $('photoImportDialog').showModal();
+};
+$('photoImportClose').onclick=()=>$('photoImportDialog').close();
+$('photoImportFile').onchange=e=>{
+  photoSourceFile=e.target.files&&e.target.files[0];
+  if(!photoSourceFile)return;
+  const url=URL.createObjectURL(photoSourceFile);
+  $('photoImportPreview').src=url;
+  $('photoImportPreview').classList.remove('hidden');
+  $('photoImportStatus').textContent='写真を選択しました。「写真を解析」を押してください。';
+};
+$('photoOcrBtn').onclick=async()=>{
+  if(!photoSourceFile){alert('週間予定表の写真を選択してください。');return}
+  if(!window.Tesseract){alert('OCRライブラリを読み込めませんでした。インターネット接続を確認してください。');return}
+  $('photoOcrBtn').disabled=true;
+  $('photoImportStatus').textContent='写真を補正して日本語OCRを実行しています。初回は少し時間がかかります…';
+  try{
+    const processed=await preprocessPhotoForOCR(photoSourceFile);
+    const result=await Tesseract.recognize(processed,'jpn+eng',{
+      logger:m=>{
+        if(typeof m.progress==='number')$('photoImportProgress').style.width=Math.round(m.progress*100)+'%';
+        if(m.status)$('photoImportStatus').textContent=`解析中：${m.status}`;
+      }
+    });
+    $('photoOcrText').value=normalizePhotoOCRText(result.data.text||'');
+    $('photoOcrArea').classList.remove('hidden');
+    $('photoImportStatus').textContent='文字解析が完了しました。「Excelデータに変換」を押してください。';
+  }catch(err){
+    console.error(err);
+    alert('写真解析に失敗しました: '+(err.message||err));
+  }finally{
+    $('photoOcrBtn').disabled=false;
+  }
+};
+$('photoParseBtn').onclick=async()=>{
+  try{
+    photoParsedBlocks=parseThunderbirdsPhotoOCR($('photoOcrText').value);
+    if(!photoParsedBlocks.length){
+      alert('日付を読み取れませんでした。OCR結果の日付を確認・修正してください。');
+      return;
+    }
+    $('photoImportStatus').textContent=`${photoParsedBlocks.length}個の日付ブロックをExcel形式へ変換し、既存予定と照合しています…`;
+    await matchPhotoBlocks(photoParsedBlocks);
+    renderPhotoReview();
+    $('photoReviewArea').classList.remove('hidden');
+    collectPhotoEdits();
+    photoGeneratedExcelFile=makePhotoExcelFile(photoParsedBlocks);
+    await uploadPhotoSourceIfNeeded();
+    const matched=photoParsedBlocks.reduce((n,b)=>n+b.matches.length,0);
+    $('photoImportStatus').textContent=`Excel変換完了：${photoParsedBlocks.length}ブロック / 既存予定一致 ${matched}件。内容を確認してください。元写真は保存済みです。`;
+  }catch(err){
+    console.error(err);
+    alert('Excel変換・照合に失敗しました: '+(err.message||err));
+  }
+};
+$('photoExcelDownloadBtn').onclick=()=>{
+  collectPhotoEdits();
+  const f=makePhotoExcelFile(photoParsedBlocks);
+  const url=URL.createObjectURL(f);
+  const a=document.createElement('a');
+  a.href=url;a.download=f.name;document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
+};
+$('photoApplyBtn').onclick=applyPhotoImport;
+
 
 let importSourceFile=null,parsedImportBlocks=[]; const MAKI_INDEX=3;
 function cleanCell(v){return String(v??'').replace(/\r\n/g,'\n').replace(/\r/g,'\n').trim()}
