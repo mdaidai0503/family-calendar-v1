@@ -122,6 +122,19 @@ textarea{min-height:78px;resize:vertical}
   .app{padding-bottom:90px}
 }
 
+
+/* v2.6.4: iPhone date picker opens only from explicit buttons */
+.date-display-row{display:grid;grid-template-columns:minmax(0,1fr) 64px;gap:7px;align-items:center}
+.date-display-row input{pointer-events:none;background:#f8fafc;color:var(--text);font-weight:600}
+.date-change-btn{height:42px;padding:6px 8px;font-size:12px;color:var(--accent);border-color:#bfdbfe}
+.hidden-date-picker{
+  position:fixed!important;
+  width:1px!important;height:1px!important;
+  opacity:0!important;
+  pointer-events:none!important;
+  left:-9999px!important;top:-9999px!important;
+}
+
 </style>
 </head>
 <body>
@@ -470,7 +483,7 @@ function setAllDayUI(){
 }
 function openNew(date=ymd(new Date())){
   $("eventTitle").textContent="予定を登録"; $("eventId").value="";
-  $("startDate").value=date; $("endDate").value=date;
+  $("startDate").value=date; $("endDate").value=date; $("startDatePicker").value=date; $("endDatePicker").value=date;
   $("member").value=localStorage.getItem("default_member")||"0";
   $("allDay").checked=true; setAllDayUI();
   $("startTime").value=""; $("endTime").value="";
@@ -479,7 +492,7 @@ function openNew(date=ymd(new Date())){
 }
 function openEdit(e){
   $("eventTitle").textContent="予定を編集"; $("eventId").value=e.id;
-  $("startDate").value=e.event_date; $("endDate").value=e.end_date||e.event_date;
+  $("startDate").value=e.event_date; $("endDate").value=e.end_date||e.event_date; $("startDatePicker").value=e.event_date; $("endDatePicker").value=e.end_date||e.event_date;
   $("member").value=String(e.member_index);
   $("allDay").checked=!!e.all_day; setAllDayUI();
   $("startTime").value=(e.start_time||"").slice(0,5);
@@ -488,6 +501,50 @@ function openEdit(e){
   $("title").value=e.title||""; $("memo").value=e.memo||"";
   $("deleteBtn").classList.remove("hidden"); updateRangeSummary(); $("eventDialog").showModal();
 }
+
+function openExplicitDatePicker(which){
+  const display=$(which+"Date");
+  const picker=$(which+"DatePicker");
+  picker.value=display.value || ymd(new Date());
+
+  try{
+    if(typeof picker.showPicker==="function"){
+      picker.showPicker();
+    }else{
+      picker.focus();
+      picker.click();
+    }
+  }catch(_){
+    try{
+      picker.style.position="fixed";
+      picker.style.left="8px";
+      picker.style.bottom="8px";
+      picker.style.opacity="0.01";
+      picker.focus();
+      picker.click();
+    }catch(__){}
+  }
+}
+
+$("startDatePickBtn").onclick=()=>openExplicitDatePicker("start");
+$("endDatePickBtn").onclick=()=>openExplicitDatePicker("end");
+
+$("startDatePicker").onchange=()=>{
+  if(!$("startDatePicker").value) return;
+  $("startDate").value=$("startDatePicker").value;
+  if(!$("endDate").value || $("endDate").value < $("startDate").value){
+    $("endDate").value=$("startDate").value;
+    $("endDatePicker").value=$("startDate").value;
+  }
+  updateRangeSummary();
+};
+
+$("endDatePicker").onchange=()=>{
+  if(!$("endDatePicker").value) return;
+  $("endDate").value=$("endDatePicker").value;
+  updateRangeSummary();
+};
+
 $("startDate").onchange=()=>{
   if(!$("endDate").value||$("endDate").value<$("startDate").value)$("endDate").value=$("startDate").value;
   updateRangeSummary();
