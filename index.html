@@ -169,14 +169,14 @@ textarea{min-height:78px;resize:vertical}
 </form>
 </dialog>
 
-<dialog id="importDialog"><div class="modal"><h2>📷 サンダーバーズ予定表取込</h2><div class="import-note">昌輝（家族4）の既存「サンダーバーズユース」予定に、週予定表から時間・場所・持ち物・備考を追加します。反映前に必ず内容を確認できます。</div><div class="field" style="margin-top:12px"><label>予定表の写真</label><input id="importFile" type="file" accept="image/*" capture="environment"></div><img id="importPreview" class="import-preview hidden" alt="予定表プレビュー"><div id="importStatus" class="import-status">写真を選択してください。</div><div class="progress"><i id="importProgress"></i></div><div class="actions"><button class="btn" type="button" id="importClose">閉じる</button><button class="btn primary" type="button" id="ocrBtn">写真を解析</button></div><div id="ocrArea" class="hidden" style="margin-top:14px;border-top:1px solid var(--line);padding-top:14px"><div class="field"><label>OCR結果（必要なら修正できます）</label><textarea id="ocrText" class="ocr-raw"></textarea></div><div class="actions"><button class="btn primary" type="button" id="parseBtn">予定を照合</button></div></div><div id="reviewArea" class="hidden" style="margin-top:14px;border-top:1px solid var(--line);padding-top:14px"><strong>反映内容の確認</strong><div id="reviewList" class="review-list"></div><div class="actions"><button class="btn primary" type="button" id="applyImportBtn">チェックした予定を反映</button></div></div></div></dialog>
+<dialog id="importDialog"><div class="modal"><h2>📷 サンダーバーズ予定表取込</h2><div class="import-note">昌輝（家族4）の既存「サンダーバーズユース」予定に、週予定表から時間・場所・持ち物・備考を追加します。反映前に必ず内容を確認できます。</div><div class="field" style="margin-top:12px"><label>予定表の写真（写真ライブラリ／ファイルから選択）</label><input id="importFile" type="file" accept="image/*"></div><img id="importPreview" class="import-preview hidden" alt="予定表プレビュー"><div id="importStatus" class="import-status">写真を選択してください。</div><div class="progress"><i id="importProgress"></i></div><div class="actions"><button class="btn" type="button" id="importClose">閉じる</button><button class="btn primary" type="button" id="ocrBtn">写真を解析</button></div><div id="ocrArea" class="hidden" style="margin-top:14px;border-top:1px solid var(--line);padding-top:14px"><div class="field"><label>OCR結果（必要なら修正できます）</label><textarea id="ocrText" class="ocr-raw"></textarea></div><div class="actions"><button class="btn primary" type="button" id="parseBtn">予定を照合</button></div></div><div id="reviewArea" class="hidden" style="margin-top:14px;border-top:1px solid var(--line);padding-top:14px"><strong>反映内容の確認</strong><div id="reviewList" class="review-list"></div><div class="actions"><button class="btn primary" type="button" id="applyImportBtn">チェックした予定を反映</button></div></div></div></dialog>
 
 <dialog id="sourceDialog">
 <div class="modal">
   <h2 id="sourceDialogTitle">元予定表</h2>
   <div id="sourceDialogNote" class="import-note"></div>
   <div id="monthlyUploadArea" class="hidden" style="margin-top:12px">
-    <div class="field"><label>表示中の月の月間予定表写真を登録</label><input id="monthlySourceFile" type="file" accept="image/*" capture="environment"></div>
+    <div class="field"><label>表示中の月の月間予定表（写真ライブラリ／ファイルから選択）</label><input id="monthlySourceFile" type="file" accept="image/*"></div>
     <div class="actions"><button class="btn primary" type="button" id="monthlySourceUploadBtn">月間予定表を保存</button></div>
   </div>
   <div id="sourceStatus" class="import-status">読み込み中…</div>
