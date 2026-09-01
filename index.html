@@ -175,12 +175,26 @@ textarea{min-height:78px;resize:vertical}
 
 <dialog id="eventDialog">
 <form method="dialog" class="modal" id="eventForm">
-  <h2 id="eventTitle">予定を登録</h2>
+  <h2 id="eventTitle" tabindex="-1">予定を登録</h2>
   <input type="hidden" id="eventId">
 
   <div class="grid">
-    <div class="field"><label>開始日</label><input type="date" id="startDate" required></div>
-    <div class="field"><label>終了日</label><input type="date" id="endDate" required></div>
+    <div class="field">
+      <label>開始日</label>
+      <div class="date-display-row">
+        <input type="text" id="startDate" inputmode="none" autocomplete="off" readonly required tabindex="-1">
+        <button type="button" class="btn date-change-btn" id="startDatePickBtn">変更</button>
+      </div>
+      <input type="date" id="startDatePicker" class="hidden-date-picker" tabindex="-1" aria-hidden="true">
+    </div>
+    <div class="field">
+      <label>終了日</label>
+      <div class="date-display-row">
+        <input type="text" id="endDate" inputmode="none" autocomplete="off" readonly required tabindex="-1">
+        <button type="button" class="btn date-change-btn" id="endDatePickBtn">変更</button>
+      </div>
+      <input type="date" id="endDatePicker" class="hidden-date-picker" tabindex="-1" aria-hidden="true">
+    </div>
   </div>
   <div class="summary" id="rangeSummary"></div>
 
@@ -481,6 +495,18 @@ function setAllDayUI(){
   $("timeFields").classList.toggle("hidden",all);
   if(all){$("startTime").value="";$("endTime").value=""}
 }
+
+function showEventDialogSafe(){
+  $("eventDialog").showModal();
+  requestAnimationFrame(()=>{
+    try{
+      $("eventTitle").focus({preventScroll:true});
+    }catch(_){
+      try{$("eventTitle").focus()}catch(__){}
+    }
+  });
+}
+
 function openNew(date=ymd(new Date())){
   $("eventTitle").textContent="予定を登録"; $("eventId").value="";
   $("startDate").value=date; $("endDate").value=date; $("startDatePicker").value=date; $("endDatePicker").value=date;
@@ -488,7 +514,7 @@ function openNew(date=ymd(new Date())){
   $("allDay").checked=true; setAllDayUI();
   $("startTime").value=""; $("endTime").value="";
   selectCategory("仕事"); $("title").value=""; $("memo").value="";
-  $("deleteBtn").classList.add("hidden"); updateRangeSummary(); $("eventDialog").showModal();
+  $("deleteBtn").classList.add("hidden"); updateRangeSummary(); showEventDialogSafe();
 }
 function openEdit(e){
   $("eventTitle").textContent="予定を編集"; $("eventId").value=e.id;
@@ -499,13 +525,24 @@ function openEdit(e){
   $("endTime").value=(e.end_time||"").slice(0,5);
   selectCategory(e.category||"その他");
   $("title").value=e.title||""; $("memo").value=e.memo||"";
-  $("deleteBtn").classList.remove("hidden"); updateRangeSummary(); $("eventDialog").showModal();
+  $("deleteBtn").classList.remove("hidden"); updateRangeSummary(); showEventDialogSafe();
 }
 
 function openExplicitDatePicker(which){
   const display=$(which+"Date");
   const picker=$(which+"DatePicker");
+  if(!display || !picker) return;
+
   picker.value=display.value || ymd(new Date());
+
+  // Temporarily move the real date input into the viewport.
+  picker.style.position="fixed";
+  picker.style.left="12px";
+  picker.style.bottom="12px";
+  picker.style.width="44px";
+  picker.style.height="44px";
+  picker.style.opacity="0.01";
+  picker.style.pointerEvents="auto";
 
   try{
     if(typeof picker.showPicker==="function"){
@@ -516,14 +553,20 @@ function openExplicitDatePicker(which){
     }
   }catch(_){
     try{
-      picker.style.position="fixed";
-      picker.style.left="8px";
-      picker.style.bottom="8px";
-      picker.style.opacity="0.01";
       picker.focus();
       picker.click();
     }catch(__){}
   }
+
+  setTimeout(()=>{
+    picker.style.pointerEvents="none";
+    picker.style.left="-9999px";
+    picker.style.top="-9999px";
+    picker.style.bottom="auto";
+    picker.style.opacity="0";
+    picker.style.width="1px";
+    picker.style.height="1px";
+  },500);
 }
 
 $("startDatePickBtn").onclick=()=>openExplicitDatePicker("start");
@@ -545,11 +588,6 @@ $("endDatePicker").onchange=()=>{
   updateRangeSummary();
 };
 
-$("startDate").onchange=()=>{
-  if(!$("endDate").value||$("endDate").value<$("startDate").value)$("endDate").value=$("startDate").value;
-  updateRangeSummary();
-};
-$("endDate").onchange=updateRangeSummary;
 $("allDay").onchange=setAllDayUI;
 
 $("eventForm").addEventListener("submit",async e=>{
