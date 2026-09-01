@@ -475,7 +475,48 @@ $("settingsSave").onclick=async()=>{
 };
 
 
-const SOURCE_BUCKET='family-schedule-sources';\nlet currentSourceType='monthly';\nfunction monthRange(){const y=current.getFullYear(),m=current.getMonth();const a=new Date(y,m,1),b=new Date(y,m+1,0);return{start:ymd(a),end:ymd(b)}}\nfunction extOf(file){const n=(file&&file.name)||'';const m=n.match(/\\.([a-zA-Z0-9]+)$/);return m?m[1].toLowerCase():(file&&file.type==='image/png'?'png':'jpg')}\nasync function uploadSourceFile(file,type,periodStart,periodEnd){\n  if(!sb)throw new Error('Supabaseに接続されていません。');\n  const ext=extOf(file),safeType=type==='monthly'?'monthly':'weekly';\n  const path=`maki/${safeType}/${periodStart}_${Date.now()}_${Math.random().toString(36).slice(2,8)}.${ext}`;\n  const {error:upErr}=await sb.storage.from(SOURCE_BUCKET).upload(path,file,{contentType:file.type||'image/jpeg',upsert:false});\n  if(upErr)throw upErr;\n  const {error:dbErr}=await sb.from('schedule_sources').insert({source_type:safeType,member_index:MAKI_INDEX,period_start:periodStart,period_end:periodEnd,file_path:path,file_name:file.name||`${safeType}.${ext}`});\n  if(dbErr){await sb.storage.from(SOURCE_BUCKET).remove([path]);throw dbErr}\n  return path;\n}\nasync function openSourceImage(path){\n  const {data,error}=await sb.storage.from(SOURCE_BUCKET).createSignedUrl(path,300);\n  if(error)throw error;\n  window.open(data.signedUrl,'_blank','noopener');\n}\nasync function loadSourceList(type){\n  currentSourceType=type;\n  const range=monthRange();\n  $('sourceDialogTitle').textContent=type==='monthly'?'📅 月間元予定':'📄 週間元予定';\n  $('sourceDialogNote').textContent=type==='monthly'?'表示中の月の月間予定表写真を保存・参照できます。':'表示中の月に関係する週間予定表の原本写真です。予定表取込時に自動保存されます。';\n  $('monthlyUploadArea').classList.toggle('hidden',type!=='monthly');\n  $('sourceStatus').textContent='元予定表を読み込んでいます…'; $('sourceList').innerHTML='';\n  let q=sb.from('schedule_sources').select('*').eq('member_index',MAKI_INDEX).eq('source_type',type).lte('period_start',range.end).gte('period_end',range.start).order('created_at',{ascending:false});\n  const {data,error}=await q;if(error)throw error;\n  const rows=data||[];$('sourceStatus').textContent=rows.length?`${rows.length}件あります。`:'この月の元予定表はまだありません。';\n  for(const r of rows){const c=document.createElement('div');c.className='source-card';const label=r.source_type==='monthly'?'月間予定表':'週間予定表';c.innerHTML=`<div class="source-card-head"><strong>${esc(label)}</strong><button class="btn primary source-open" type="button">開く</button></div><div class="source-meta">${esc(r.period_start)} ～ ${esc(r.period_end)}<br>${esc(r.file_name||'')}</div>`;c.querySelector('.source-open').onclick=async()=>{try{await openSourceImage(r.file_path)}catch(e){alert('元画像を開けません: '+(e.message||e))}};$('sourceList').appendChild(c)}\n}\nasync function showSourceDialog(type){\n  if(!sb){alert('先にSupabaseへ接続してください。');return}\n  $('sourceDialog').showModal();\n  try{await loadSourceList(type)}catch(e){console.error(e);$('sourceStatus').textContent='読み込みに失敗しました。v2.3-source-migration.sqlを実行してください。'}\n}\n$('monthlySourceBtn').onclick=()=>showSourceDialog('monthly');\n$('weeklySourceBtn').onclick=()=>showSourceDialog('weekly');\n$('sourceCloseBtn').onclick=()=>$('sourceDialog').close();\n$('monthlySourceUploadBtn').onclick=async()=>{const f=$('monthlySourceFile').files&&$('monthlySourceFile').files[0];if(!f){alert('月間予定表の写真を選択してください。');return}const r=monthRange();$('monthlySourceUploadBtn').disabled=true;$('sourceStatus').textContent='月間予定表を保存しています…';try{await uploadSourceFile(f,'monthly',r.start,r.end);$('monthlySourceFile').value='';await loadSourceList('monthly');alert('月間予定表の元画像を保存しました。')}catch(e){console.error(e);alert('保存に失敗しました: '+(e.message||e))}finally{$('monthlySourceUploadBtn').disabled=false}};\n\nlet importImageFile=null,parsedImportBlocks=[]; const MAKI_INDEX=3;
+const SOURCE_BUCKET='family-schedule-sources';
+let currentSourceType='monthly';
+function monthRange(){const y=current.getFullYear(),m=current.getMonth();const a=new Date(y,m,1),b=new Date(y,m+1,0);return{start:ymd(a),end:ymd(b)}}
+function extOf(file){const n=(file&&file.name)||'';const m=n.match(/\\.([a-zA-Z0-9]+)$/);return m?m[1].toLowerCase():(file&&file.type==='image/png'?'png':'jpg')}
+async function uploadSourceFile(file,type,periodStart,periodEnd){
+  if(!sb)throw new Error('Supabaseに接続されていません。');
+  const ext=extOf(file),safeType=type==='monthly'?'monthly':'weekly';
+  const path=`maki/${safeType}/${periodStart}_${Date.now()}_${Math.random().toString(36).slice(2,8)}.${ext}`;
+  const {error:upErr}=await sb.storage.from(SOURCE_BUCKET).upload(path,file,{contentType:file.type||'image/jpeg',upsert:false});
+  if(upErr)throw upErr;
+  const {error:dbErr}=await sb.from('schedule_sources').insert({source_type:safeType,member_index:MAKI_INDEX,period_start:periodStart,period_end:periodEnd,file_path:path,file_name:file.name||`${safeType}.${ext}`});
+  if(dbErr){await sb.storage.from(SOURCE_BUCKET).remove([path]);throw dbErr}
+  return path;
+}
+async function openSourceImage(path){
+  const {data,error}=await sb.storage.from(SOURCE_BUCKET).createSignedUrl(path,300);
+  if(error)throw error;
+  window.open(data.signedUrl,'_blank','noopener');
+}
+async function loadSourceList(type){
+  currentSourceType=type;
+  const range=monthRange();
+  $('sourceDialogTitle').textContent=type==='monthly'?'📅 月間元予定':'📄 週間元予定';
+  $('sourceDialogNote').textContent=type==='monthly'?'表示中の月の月間予定表写真を保存・参照できます。':'表示中の月に関係する週間予定表の原本写真です。予定表取込時に自動保存されます。';
+  $('monthlyUploadArea').classList.toggle('hidden',type!=='monthly');
+  $('sourceStatus').textContent='元予定表を読み込んでいます…'; $('sourceList').innerHTML='';
+  let q=sb.from('schedule_sources').select('*').eq('member_index',MAKI_INDEX).eq('source_type',type).lte('period_start',range.end).gte('period_end',range.start).order('created_at',{ascending:false});
+  const {data,error}=await q;if(error)throw error;
+  const rows=data||[];$('sourceStatus').textContent=rows.length?`${rows.length}件あります。`:'この月の元予定表はまだありません。';
+  for(const r of rows){const c=document.createElement('div');c.className='source-card';const label=r.source_type==='monthly'?'月間予定表':'週間予定表';c.innerHTML=`<div class="source-card-head"><strong>${esc(label)}</strong><button class="btn primary source-open" type="button">開く</button></div><div class="source-meta">${esc(r.period_start)} ～ ${esc(r.period_end)}<br>${esc(r.file_name||'')}</div>`;c.querySelector('.source-open').onclick=async()=>{try{await openSourceImage(r.file_path)}catch(e){alert('元画像を開けません: '+(e.message||e))}};$('sourceList').appendChild(c)}
+}
+async function showSourceDialog(type){
+  if(!sb){alert('先にSupabaseへ接続してください。');return}
+  $('sourceDialog').showModal();
+  try{await loadSourceList(type)}catch(e){console.error(e);$('sourceStatus').textContent='読み込みに失敗しました。v2.3-source-migration.sqlを実行してください。'}
+}
+$('monthlySourceBtn').onclick=()=>showSourceDialog('monthly');
+$('weeklySourceBtn').onclick=()=>showSourceDialog('weekly');
+$('sourceCloseBtn').onclick=()=>$('sourceDialog').close();
+$('monthlySourceUploadBtn').onclick=async()=>{const f=$('monthlySourceFile').files&&$('monthlySourceFile').files[0];if(!f){alert('月間予定表の写真を選択してください。');return}const r=monthRange();$('monthlySourceUploadBtn').disabled=true;$('sourceStatus').textContent='月間予定表を保存しています…';try{await uploadSourceFile(f,'monthly',r.start,r.end);$('monthlySourceFile').value='';await loadSourceList('monthly');alert('月間予定表の元画像を保存しました。')}catch(e){console.error(e);alert('保存に失敗しました: '+(e.message||e))}finally{$('monthlySourceUploadBtn').disabled=false}};
+
+let importImageFile=null,parsedImportBlocks=[]; const MAKI_INDEX=3;
 function normalizeOCRText(s){const fw='０１２３４５６７８９';s=String(s||'').replace(/[０-９]/g,c=>String(fw.indexOf(c)));return s.replace(/：/g,':').replace(/＠/g,'@').replace(/～/g,'〜').replace(/[\u00A0\t]+/g,' ').replace(/ +/g,' ')}
 function isoDate(y,m,d){return `${y}-${pad(m)}-${pad(d)}`}
 function extractSections(text){const lines=text.split(/\n+/).map(x=>x.trim()).filter(Boolean);let belongings=[],notes=[],mode='schedule';for(const line of lines){if(/^持ち物/.test(line)){mode='belongings';const r=line.replace(/^持ち物[:：]?\s*/,'');if(r)belongings.push(r);continue}if(/^備考/.test(line)){mode='notes';const r=line.replace(/^備考[:：]?\s*/,'');if(r)notes.push(r);continue}if(mode==='belongings')belongings.push(line);else if(mode==='notes')notes.push(line.replace(/^[・•●]\s*/,''))}return{belongings:belongings.join('、').replace(/、+/g,'、'),notes:notes.join('\n')}}
