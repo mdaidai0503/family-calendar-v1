@@ -1,4 +1,4 @@
-const CACHE = "family-calendar-v2.7-date-edit-duplicate";
+const CACHE = "family-calendar-v2.8-swipe-month";
 const ASSETS = ["./","./index.html","./manifest.webmanifest"];
 
 self.addEventListener("install", event => {

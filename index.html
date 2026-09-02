@@ -163,6 +163,17 @@ textarea{min-height:78px;resize:vertical}
   appearance:none;
 }
 
+
+/* v2.8: calendar horizontal swipe */
+.calendar-wrap{
+  touch-action: pan-y;
+  overscroll-behavior-x: contain;
+}
+.calendar-swipe-hint{
+  user-select:none;
+  -webkit-user-select:none;
+}
+
 </style>
 </head>
 <body>
@@ -1184,6 +1195,90 @@ $('excelReadBtn').onclick=async()=>{
   finally{$('excelReadBtn').disabled=false}
 };
 $('applyImportBtn').onclick=applyImport;
+
+
+/* v2.8: 月間カレンダー横スワイプ */
+(function setupCalendarSwipe(){
+  const target=document.querySelector(".calendar-wrap");
+  if(!target) return;
+
+  let startX=0;
+  let startY=0;
+  let currentX=0;
+  let currentY=0;
+  let tracking=false;
+  let startedOnInteractive=false;
+
+  const SWIPE_MIN_X=55;
+  const MAX_VERTICAL_DRIFT=70;
+  const AXIS_RATIO=1.15;
+
+  function isInteractive(el){
+    return !!el.closest(
+      "button, input, select, textarea, a, .band, dialog, .filter-nav, .floating"
+    );
+  }
+
+  target.addEventListener("touchstart",(e)=>{
+    if(e.touches.length!==1) return;
+
+    const t=e.touches[0];
+    startX=currentX=t.clientX;
+    startY=currentY=t.clientY;
+    tracking=true;
+    startedOnInteractive=isInteractive(e.target);
+  },{passive:true});
+
+  target.addEventListener("touchmove",(e)=>{
+    if(!tracking || e.touches.length!==1) return;
+    const t=e.touches[0];
+    currentX=t.clientX;
+    currentY=t.clientY;
+  },{passive:true});
+
+  target.addEventListener("touchend",()=>{
+    if(!tracking){
+      return;
+    }
+
+    tracking=false;
+
+    // 予定帯を直接操作した場合などは月移動しない
+    if(startedOnInteractive){
+      startedOnInteractive=false;
+      return;
+    }
+
+    const dx=currentX-startX;
+    const dy=currentY-startY;
+    const absX=Math.abs(dx);
+    const absY=Math.abs(dy);
+
+    // 明確な横スワイプだけ反応
+    if(
+      absX < SWIPE_MIN_X ||
+      absY > MAX_VERTICAL_DRIFT ||
+      absX < absY * AXIS_RATIO
+    ){
+      return;
+    }
+
+    if(dx < 0){
+      // 右 → 左：次月
+      current.setMonth(current.getMonth()+1);
+    }else{
+      // 左 → 右：前月
+      current.setMonth(current.getMonth()-1);
+    }
+
+    loadEvents();
+  },{passive:true});
+
+  target.addEventListener("touchcancel",()=>{
+    tracking=false;
+    startedOnInteractive=false;
+  },{passive:true});
+})();
 
 if("serviceWorker" in navigator){
   window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js").catch(console.error));
