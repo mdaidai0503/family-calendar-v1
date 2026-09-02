@@ -1,4 +1,4 @@
-const CACHE = "family-calendar-v2.6.5-ios-freeze-fix";
+const CACHE = "family-calendar-v2.7-date-edit-duplicate";
 const ASSETS = ["./","./index.html","./manifest.webmanifest"];
 
 self.addEventListener("install", event => {
@@ -18,7 +18,6 @@ self.addEventListener("fetch", event => {
   if (event.request.method !== "GET") return;
   const url = new URL(event.request.url);
 
-  // Navigation and local app files: network first so updates appear quickly.
   if (url.origin === self.location.origin) {
     event.respondWith(
       fetch(event.request)
@@ -29,9 +28,7 @@ self.addEventListener("fetch", event => {
         })
         .catch(() => caches.match(event.request))
     );
-    return;
+  } else {
+    event.respondWith(fetch(event.request));
   }
-
-  // External CDN/API requests should not be cached by this SW.
-  event.respondWith(fetch(event.request));
 });
