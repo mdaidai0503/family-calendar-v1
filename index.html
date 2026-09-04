@@ -6,9 +6,6 @@
 <meta name="theme-color" content="#ffffff">
 <title>家族カレンダー</title>
 <link rel="manifest" href="./manifest.webmanifest">
-<link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="家族カレンダー">
 <style>
 :root{
   --bg:#f4f6f8;--card:#fff;--text:#202124;--muted:#6b7280;--line:#e5e7eb;
@@ -36,19 +33,6 @@ h1{font-size:20px;margin:0}
 .day.other{background:#fafafa;color:#aaa}
 .day.sun .num{color:var(--sun)} .day.sat .num{color:var(--sat)}
 .day.today .num{background:var(--accent);color:#fff;border-radius:999px;width:27px;height:27px;display:inline-flex;align-items:center;justify-content:center}
-.day.holiday .num{color:var(--sun)}
-.holiday-name{
-  margin-top:2px;
-  font-size:9px;
-  line-height:1.15;
-  font-weight:700;
-  color:var(--sun);
-  white-space:normal;
-  overflow:hidden;
-  display:-webkit-box;
-  -webkit-line-clamp:2;
-  -webkit-box-orient:vertical;
-}
 .num{font-size:13px;font-weight:800;margin-bottom:4px}
 .overlay{position:absolute;inset:0;display:grid;grid-template-columns:repeat(7,1fr);grid-template-rows:repeat(6,var(--row-h));pointer-events:none;z-index:5}
 .band{
@@ -93,7 +77,6 @@ textarea{min-height:78px;resize:vertical}
   .topbar{flex-direction:column;align-items:flex-start}
   .month-nav{width:100%;justify-content:space-between}
   .day{padding:4px}
-  .holiday-name{font-size:8px;line-height:1.1}
   .band{height:20px;font-size:9px;padding:3px 4px;margin-top:30px}
   .band.lane1{margin-top:53px}.band.lane2{margin-top:76px}
   .grid{grid-template-columns:1fr}
@@ -231,6 +214,52 @@ textarea{min-height:78px;resize:vertical}
   .share-qr-grid{grid-template-columns:1fr 1fr;gap:8px}
   .share-qr-card{padding:8px 5px}
   .share-qr-card img{width:min(100%,150px)!important}
+}
+
+
+/* v2.10: 全員表示 4件 + 「+○件」 */
+.calendar-wrap.all-mode{--row-h:162px}
+.calendar-wrap.all-mode .band{height:20px;margin-top:34px;font-size:10px;padding:3px 5px}
+.calendar-wrap.all-mode .band.lane1{margin-top:60px}
+.calendar-wrap.all-mode .band.lane2{margin-top:86px}
+.calendar-wrap.all-mode .band.lane3{margin-top:112px}
+.more-events{
+  height:20px;
+  align-self:start;
+  margin:137px 4px 0;
+  border:1px solid #cbd5e1;
+  background:#fff;
+  border-radius:7px;
+  font-size:10px;
+  font-weight:800;
+  color:#475569;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  pointer-events:auto;
+  cursor:pointer;
+  box-shadow:0 1px 2px rgba(0,0,0,.06);
+}
+.day-events-list{display:flex;flex-direction:column;gap:8px}
+.day-event-item{
+  width:100%;
+  border:1px solid var(--line);
+  border-left:6px solid #cbd5e1;
+  border-radius:10px;
+  background:#fff;
+  padding:10px 11px;
+  text-align:left;
+  cursor:pointer;
+}
+.day-event-item-title{font-size:14px;font-weight:800;margin-bottom:4px}
+.day-event-item-meta{font-size:12px;color:var(--muted);line-height:1.45}
+@media(max-width:700px){
+  .calendar-wrap.all-mode{--row-h:138px}
+  .calendar-wrap.all-mode .band{height:18px;margin-top:28px;font-size:8.5px;padding:2px 3px}
+  .calendar-wrap.all-mode .band.lane1{margin-top:49px}
+  .calendar-wrap.all-mode .band.lane2{margin-top:70px}
+  .calendar-wrap.all-mode .band.lane3{margin-top:91px}
+  .calendar-wrap.all-mode .more-events{height:18px;margin-top:113px;font-size:9px}
 }
 
 </style>
@@ -379,6 +408,17 @@ textarea{min-height:78px;resize:vertical}
   <div class="actions"><button class="btn" type="button" id="sourceCloseBtn">閉じる</button></div>
 </div>
 </dialog>
+
+<dialog id="dayEventsDialog">
+  <div class="modal">
+    <h2 id="dayEventsTitle">この日の予定</h2>
+    <div id="dayEventsList" class="day-events-list"></div>
+    <div class="actions">
+      <button type="button" class="btn" id="dayEventsClose">閉じる</button>
+    </div>
+  </div>
+</dialog>
+
 <dialog id="settingsDialog">
 <div class="modal">
   <h2>設定</h2>
@@ -436,136 +476,6 @@ const ymd=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
 const parseDate=s=>{const [y,m,d]=s.split("-").map(Number);return new Date(y,m-1,d)};
 function esc(v=""){return String(v).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"}[c]))}
 
-/* v2.9.5: 日本の国民の祝日・振替休日・国民の休日 */
-const HOLIDAY_CACHE = new Map();
-
-function nthMonday(year, month, nth){
-  const d=new Date(year,month-1,1);
-  const firstMonday=1+((8-d.getDay())%7);
-  return firstMonday+(nth-1)*7;
-}
-function vernalEquinoxDay(year){
-  if(year<=1979) return Math.floor(20.8357+0.242194*(year-1980)-Math.floor((year-1983)/4));
-  if(year<=2099) return Math.floor(20.8431+0.242194*(year-1980)-Math.floor((year-1980)/4));
-  return Math.floor(21.8510+0.242194*(year-1980)-Math.floor((year-1980)/4));
-}
-function autumnEquinoxDay(year){
-  if(year<=1979) return Math.floor(23.2588+0.242194*(year-1980)-Math.floor((year-1983)/4));
-  if(year<=2099) return Math.floor(23.2488+0.242194*(year-1980)-Math.floor((year-1980)/4));
-  return Math.floor(24.2488+0.242194*(year-1980)-Math.floor((year-1980)/4));
-}
-function holidayKey(year,month,day){
-  return `${year}-${pad(month)}-${pad(day)}`;
-}
-function buildJapaneseHolidays(year){
-  if(HOLIDAY_CACHE.has(year)) return HOLIDAY_CACHE.get(year);
-  const h=new Map();
-  const add=(m,d,name)=>h.set(holidayKey(year,m,d),name);
-
-  // 元日
-  add(1,1,"元日");
-
-  // 成人の日
-  if(year>=2000) add(1,nthMonday(year,1,2),"成人の日");
-  else if(year>=1949) add(1,15,"成人の日");
-
-  // 建国記念の日
-  if(year>=1967) add(2,11,"建国記念の日");
-
-  // 天皇誕生日
-  if(year>=2020) add(2,23,"天皇誕生日");
-  else if(year>=1989 && year<=2018) add(12,23,"天皇誕生日");
-  else if(year>=1949 && year<=1988) add(4,29,"天皇誕生日");
-
-  // 春分の日
-  if(year>=1949) add(3,vernalEquinoxDay(year),"春分の日");
-
-  // 4/29
-  if(year>=2007) add(4,29,"昭和の日");
-  else if(year>=1989) add(4,29,"みどりの日");
-
-  // 2019年の皇位継承に伴う祝日
-  if(year===2019){
-    add(5,1,"天皇の即位の日");
-    add(10,22,"即位礼正殿の儀");
-  }
-
-  // ゴールデンウィーク
-  if(year>=1949) add(5,3,"憲法記念日");
-  if(year>=2007) add(5,4,"みどりの日");
-  if(year>=1949) add(5,5,"こどもの日");
-
-  // 海の日
-  if(year===2020) add(7,23,"海の日");
-  else if(year===2021) add(7,22,"海の日");
-  else if(year>=2003) add(7,nthMonday(year,7,3),"海の日");
-  else if(year>=1996) add(7,20,"海の日");
-
-  // 山の日
-  if(year===2020) add(8,10,"山の日");
-  else if(year===2021) add(8,8,"山の日");
-  else if(year>=2016) add(8,11,"山の日");
-
-  // 敬老の日
-  if(year>=2003) add(9,nthMonday(year,9,3),"敬老の日");
-  else if(year>=1966) add(9,15,"敬老の日");
-
-  // 秋分の日
-  if(year>=1948) add(9,autumnEquinoxDay(year),"秋分の日");
-
-  // スポーツの日 / 体育の日
-  if(year===2020) add(7,24,"スポーツの日");
-  else if(year===2021) add(7,23,"スポーツの日");
-  else if(year>=2020) add(10,nthMonday(year,10,2),"スポーツの日");
-  else if(year>=2000) add(10,nthMonday(year,10,2),"体育の日");
-  else if(year>=1966) add(10,10,"体育の日");
-
-  // 文化の日・勤労感謝の日
-  if(year>=1948) add(11,3,"文化の日");
-  if(year>=1948) add(11,23,"勤労感謝の日");
-
-  // 国民の休日：祝日に挟まれた平日
-  if(year>=1986){
-    let changed=true;
-    while(changed){
-      changed=false;
-      const start=new Date(year,0,2);
-      const end=new Date(year,11,30);
-      for(let d=new Date(start);d<=end;d.setDate(d.getDate()+1)){
-        const key=ymd(d);
-        if(h.has(key) || d.getDay()===0) continue;
-        const prev=new Date(d); prev.setDate(prev.getDate()-1);
-        const next=new Date(d); next.setDate(next.getDate()+1);
-        if(h.has(ymd(prev)) && h.has(ymd(next))){
-          h.set(key,"国民の休日");
-          changed=true;
-        }
-      }
-    }
-  }
-
-  // 振替休日
-  if(year>=1973){
-    const originals=[...h.entries()];
-    for(const [key] of originals){
-      const d=parseDate(key);
-      if(d.getDay()!==0) continue;
-      let sub=new Date(d);
-      do{sub.setDate(sub.getDate()+1)}while(h.has(ymd(sub)));
-      if(sub.getFullYear()===year && !h.has(ymd(sub))){
-        h.set(ymd(sub),"振替休日");
-      }
-    }
-  }
-
-  HOLIDAY_CACHE.set(year,h);
-  return h;
-}
-function getJapaneseHoliday(date){
-  return buildJapaneseHolidays(date.getFullYear()).get(ymd(date))||"";
-}
-
-
 
 function encodeShareSetup(obj){
   const json=JSON.stringify(obj);
@@ -577,19 +487,10 @@ function decodeShareSetup(s){
   while(b64.length%4) b64+="=";
   return JSON.parse(decodeURIComponent(atob(b64)));
 }
-function getFamilySetupToken(){
-  const params=new URLSearchParams(location.search);
-  let token=params.get("family_setup");
-  if(!token && location.hash){
-    const hash=location.hash.replace(/^#/,"");
-    const hashParams=new URLSearchParams(hash);
-    token=hashParams.get("family_setup");
-  }
-  return token||"";
-}
 function applySetupFromQr(){
   try{
-    const token=getFamilySetupToken();
+    const params=new URLSearchParams(location.search);
+    const token=params.get("family_setup");
     if(!token) return false;
 
     const data=decodeShareSetup(token);
@@ -597,8 +498,6 @@ function applySetupFromQr(){
 
     localStorage.setItem("supabase_url",String(data.url));
     localStorage.setItem("supabase_key",String(data.key));
-    localStorage.setItem("family_setup_token",token);
-    sessionStorage.setItem("family_setup_token",token);
 
     if(Array.isArray(data.names) && data.names.length===4){
       localStorage.setItem("family_names",JSON.stringify(data.names));
@@ -635,9 +534,7 @@ function makeFamilyShareUrl(memberIndex){
     names:members,
     member:memberIndex
   };
-  const token=encodeURIComponent(encodeShareSetup(payload));
-  // query + hash の両方に保持し、iPhoneのホーム画面追加時に設定が失われにくくする
-  return base+"?family_setup="+token+"#family_setup="+token;
+  return base+"?family_setup="+encodeURIComponent(encodeShareSetup(payload));
 }
 async function renderFamilyShareQrs(){
   const grid=$("shareQrGrid");
@@ -776,10 +673,65 @@ function assignLanes(sourceEvents){
   return map;
 }
 
+function eventsForDay(dayKey){
+  return getVisibleEvents().filter(e=>{
+    const s=e.event_date;
+    const en=e.end_date||e.event_date;
+    return s<=dayKey && en>=dayKey;
+  });
+}
+
+function showDayEvents(dayKey){
+  const list=eventsForDay(dayKey).slice().sort((a,b)=>{
+    const ta=(a.start_time||"99:99").slice(0,5);
+    const tb=(b.start_time||"99:99").slice(0,5);
+    return ta.localeCompare(tb) || Number(a.member_index)-Number(b.member_index) ||
+           String(a.title||"").localeCompare(String(b.title||""));
+  });
+
+  const d=parseDate(dayKey);
+  $("dayEventsTitle").textContent=`${d.getMonth()+1}月${d.getDate()}日の予定（${list.length}件）`;
+  const box=$("dayEventsList");
+  box.innerHTML="";
+
+  for(const e of list){
+    const idx=Math.max(0,Math.min(3,Number(e.member_index)||0));
+    const btn=document.createElement("button");
+    btn.type="button";
+    btn.className="day-event-item";
+    btn.style.borderLeftColor=COLORS[idx];
+
+    const time=e.all_day ? "終日" :
+      [String(e.start_time||"").slice(0,5),String(e.end_time||"").slice(0,5)]
+        .filter(Boolean).join("～");
+
+    const range=(e.end_date && e.end_date!==e.event_date)
+      ? `${e.event_date}～${e.end_date}`
+      : e.event_date;
+
+    btn.innerHTML=
+      `<div class="day-event-item-title">${esc(e.title||"（予定名なし）")}</div>`+
+      `<div class="day-event-item-meta">${esc(members[idx]||"?")}　${esc(time||"時間未設定")}<br>${esc(range)}</div>`;
+
+    btn.onclick=()=>{
+      $("dayEventsDialog").close();
+      openEdit(e);
+    };
+    box.appendChild(btn);
+  }
+
+  $("dayEventsDialog").showModal();
+}
+
 function renderBands(){
   const overlay=$("overlay"); overlay.innerHTML="";
   const visibleEvents=getVisibleEvents();
   const laneMap=assignLanes(visibleEvents);
+  const allMode=activeFilter==="all";
+  const hiddenByDay=new Map();
+
+  $("calendar").parentElement.classList.toggle("all-mode",allMode);
+
   for(const e of visibleEvents){
     const actualStart=parseDate(e.event_date);
     const actualEnd=parseDate(e.end_date||e.event_date);
@@ -791,8 +743,18 @@ function renderBands(){
     const sIdx=Math.round((s-visibleStart)/86400000);
     const eIdx=Math.round((en-visibleStart)/86400000);
     const lane=laneMap.get(e.id)||0;
-    let cursor=sIdx;
 
+    // 「全員」では4件目まで表示。5件目以降は日ごとに +○件 へまとめる。
+    if(allMode && lane>=4){
+      for(let di=sIdx;di<=eIdx;di++){
+        const d=new Date(visibleStart); d.setDate(visibleStart.getDate()+di);
+        const key=ymd(d);
+        hiddenByDay.set(key,(hiddenByDay.get(key)||0)+1);
+      }
+      continue;
+    }
+
+    let cursor=sIdx;
     while(cursor<=eIdx){
       const row=Math.floor(cursor/7);
       const rowEnd=row*7+6;
@@ -816,10 +778,33 @@ function renderBands(){
       band.style.color=TEXTCOLORS[idx];
       band.textContent=`${e.title}（${members[idx]||"?"}）`;
       band.title=`${e.event_date} ～ ${e.end_date||e.event_date}　${e.title}`;
-      band.onclick=()=>openEdit(e);
+      band.onclick=ev=>{ev.stopPropagation();openEdit(e)};
       overlay.appendChild(band);
 
       cursor=segEnd+1;
+    }
+  }
+
+  if(allMode){
+    for(const [key,count] of hiddenByDay){
+      if(count<=0) continue;
+      const di=dayIndex(key);
+      if(di<0 || di>41) continue;
+
+      const row=Math.floor(di/7);
+      const col=(di%7)+1;
+      const more=document.createElement("button");
+      more.type="button";
+      more.className="more-events";
+      more.style.gridColumn=`${col}`;
+      more.style.gridRow=`${row+1}`;
+      more.textContent=`＋${count}件`;
+      more.title=`${key} の予定をすべて表示`;
+      more.onclick=ev=>{
+        ev.stopPropagation();
+        showDayEvents(key);
+      };
+      overlay.appendChild(more);
     }
   }
 }
@@ -839,9 +824,7 @@ function render(){
     if(d.getMonth()!==current.getMonth()) div.classList.add("other");
     if(key===today) div.classList.add("today");
     if(dow===0) div.classList.add("sun"); if(dow===6) div.classList.add("sat");
-    const holidayName=getJapaneseHoliday(d);
-    if(holidayName) div.classList.add("holiday");
-    div.innerHTML=`<div class="num">${d.getDate()}</div>${holidayName?`<div class="holiday-name">${esc(holidayName)}</div>`:""}`;
+    div.innerHTML=`<div class="num">${d.getDate()}</div>`;
     div.onclick=()=>openNew(key);
     cal.appendChild(div);
   }
@@ -972,6 +955,7 @@ $("deleteBtn").onclick=async()=>{
   $("eventDialog").close();await loadEvents();
 };
 $("cancelBtn").onclick=()=>$("eventDialog").close();
+$("dayEventsClose").onclick=()=>$("dayEventsDialog").close();
 $("prevBtn").onclick=()=>{current.setMonth(current.getMonth()-1);loadEvents()};
 $("nextBtn").onclick=()=>{current.setMonth(current.getMonth()+1);loadEvents()};
 $("todayBtn").onclick=()=>{current=new Date();current.setDate(1);loadEvents()};
@@ -1542,7 +1526,8 @@ function isStandaloneApp(){
          window.navigator.standalone === true;
 }
 function showQrInstallNotice(){
-  if(!getFamilySetupToken() || isStandaloneApp()) return;
+  const params=new URLSearchParams(location.search);
+  if(!params.get("family_setup") || isStandaloneApp()) return;
 
   setTimeout(()=>{
     const existing=document.getElementById("qrInstallNotice");
@@ -1643,30 +1628,7 @@ function showQrInstallNotice(){
 if("serviceWorker" in navigator){
   window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js").catch(console.error));
 }
-let setupApplied=applySetupFromQr();
-
-// iPhoneのホーム画面起動でURLのfamily_setupが外れた場合の端末内バックアップ
-if(!setupApplied && (!localStorage.getItem("supabase_url") || !localStorage.getItem("supabase_key"))){
-  const savedToken=localStorage.getItem("family_setup_token") || sessionStorage.getItem("family_setup_token") || "";
-  if(savedToken){
-    try{
-      const data=decodeShareSetup(savedToken);
-      if(data && data.url && data.key){
-        localStorage.setItem("supabase_url",String(data.url));
-        localStorage.setItem("supabase_key",String(data.key));
-        if(Array.isArray(data.names) && data.names.length===4){
-          localStorage.setItem("family_names",JSON.stringify(data.names));
-          members=data.names;
-        }
-        if(Number.isInteger(data.member) && data.member>=0 && data.member<=3){
-          localStorage.setItem("default_member",String(data.member));
-          localStorage.setItem("calendar_filter",String(data.member));
-        }
-        setupApplied=true;
-      }
-    }catch(e){ console.warn("setup token restore failed",e); }
-  }
-}
+const setupApplied=applySetupFromQr();
 if(setupApplied){
   activeFilter=localStorage.getItem("calendar_filter")||"all";
 }
