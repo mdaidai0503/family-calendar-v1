@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <title>家族カレンダー</title>
-<link rel="manifest" href="manifest.webmanifest">
+<link rel="manifest" href="./manifest.webmanifest">
 <style>
 :root{
   --bg:#f4f6f8;--card:#fff;--text:#202124;--muted:#6b7280;--line:#e5e7eb;
@@ -449,12 +449,14 @@ function applySetupFromQr(){
 
     if(Number.isInteger(data.member) && data.member>=0 && data.member<=3){
       localStorage.setItem("default_member",String(data.member));
-      localStorage.setItem("family_filter",String(data.member));
+      localStorage.setItem("calendar_filter",String(data.member));
     }
 
-    // Remove setup data from the visible URL/history after saving it.
-    const clean=location.origin+location.pathname+(location.hash||"");
-    history.replaceState(null,"",clean);
+    // IMPORTANT (iPhone PWA):
+    // Keep the setup parameter in the page URL.
+    // When this page is added to the Home Screen, iOS can use this exact
+    // document URL as the installed app's launch URL. The app can then
+    // restore the connection settings inside the standalone PWA container.
     return true;
   }catch(err){
     console.error("QR setup error",err);
@@ -1372,6 +1374,28 @@ $('excelReadBtn').onclick=async()=>{
 $('applyImportBtn').onclick=applyImport;
 
 
+
+function isStandaloneApp(){
+  return window.matchMedia("(display-mode: standalone)").matches ||
+         window.navigator.standalone === true;
+}
+function showQrInstallNotice(){
+  const params=new URLSearchParams(location.search);
+  if(!params.get("family_setup") || isStandaloneApp()) return;
+
+  setTimeout(()=>{
+    const existing=document.getElementById("qrInstallNotice");
+    if(existing) return;
+
+    const box=document.createElement("div");
+    box.id="qrInstallNotice";
+    box.style.cssText="position:fixed;left:12px;right:12px;bottom:82px;z-index:9999;background:#fff;border:1px solid #cbd5e1;border-radius:14px;padding:12px 14px;box-shadow:0 8px 28px rgba(0,0,0,.18);font-size:13px;line-height:1.5";
+    box.innerHTML='<b>このページをそのままホーム画面に追加してください。</b><br>Safariの共有ボタン →「ホーム画面に追加」。<br><span style="color:#64748b">追加後はホーム画面から起動しても接続設定が自動復元されます。</span><button type="button" id="qrInstallNoticeClose" style="float:right;margin-top:8px;border:0;background:#e2e8f0;border-radius:8px;padding:6px 10px">閉じる</button>';
+    document.body.appendChild(box);
+    document.getElementById("qrInstallNoticeClose").onclick=()=>box.remove();
+  },500);
+}
+
 /* v2.8: 月間カレンダー横スワイプ */
 (function setupCalendarSwipe(){
   const target=document.querySelector(".calendar-wrap");
@@ -1458,7 +1482,11 @@ $('applyImportBtn').onclick=applyImport;
 if("serviceWorker" in navigator){
   window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js").catch(console.error));
 }
-applySetupFromQr();loadSettingsUI();selectCategory("仕事");render();connect();
+const setupApplied=applySetupFromQr();
+if(setupApplied){
+  activeFilter=localStorage.getItem("calendar_filter")||"all";
+}
+loadSettingsUI();selectCategory("仕事");render();connect();showQrInstallNotice();
 </script>
 </body>
 </html>
