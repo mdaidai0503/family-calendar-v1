@@ -373,6 +373,7 @@ textarea{min-height:78px;resize:vertical}
   <div class="field"><label>家族4</label><input id="name3"></div>
   <div class="field"><label>この端末の初期選択</label><select id="defaultMember"></select></div>
   <div class="actions">
+    <button class="btn" id="familyShareBtn" type="button">📱 家族共有QR</button>
     <button class="btn" id="settingsCancel">閉じる</button>
     <button class="btn primary" id="settingsSave">保存して接続</button>
   </div>
@@ -803,7 +804,7 @@ $("nextBtn").onclick=()=>{current.setMonth(current.getMonth()+1);loadEvents()};
 $("todayBtn").onclick=()=>{current=new Date();current.setDate(1);loadEvents()};
 $("addBtn").onclick=()=>openNew();
 
-$("familyShareBtn").onclick=async()=>{
+if($("familyShareBtn")) $("familyShareBtn").onclick=async()=>{
   try{
     // Save current visible settings first so the QR uses the latest values.
     members=[0,1,2,3].map(i=>$("name"+i).value.trim()||DEFAULT_NAMES[i]);
@@ -819,7 +820,7 @@ $("familyShareBtn").onclick=async()=>{
     alert(err.message||String(err));
   }
 };
-$("familyShareClose").onclick=()=>$("familyShareDialog").close();
+if($("familyShareClose")) $("familyShareClose").onclick=()=>$("familyShareDialog").close();
 
 $("settingsBtn").onclick=()=>{loadSettingsUI();$("settingsDialog").showModal()};
 $("settingsCancel").onclick=()=>$("settingsDialog").close();
