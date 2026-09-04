@@ -198,7 +198,7 @@ textarea{min-height:78px;resize:vertical}
   background:#fff;
 }
 .share-qr-card strong{display:block;margin-bottom:6px;font-size:15px}
-.share-qr-card canvas{
+.share-qr-card img{
   width:min(100%,180px)!important;
   height:auto!important;
   border-radius:8px;
@@ -213,7 +213,7 @@ textarea{min-height:78px;resize:vertical}
 @media(max-width:520px){
   .share-qr-grid{grid-template-columns:1fr 1fr;gap:8px}
   .share-qr-card{padding:8px 5px}
-  .share-qr-card canvas{width:min(100%,150px)!important}
+  .share-qr-card img{width:min(100%,150px)!important}
 }
 
 </style>
@@ -381,8 +381,6 @@ textarea{min-height:78px;resize:vertical}
 </dialog>
 
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.4/build/qrcode.min.js"></script>
-
 <dialog id="familyShareDialog">
 <div class="modal">
   <h2>📱 家族にアプリを共有</h2>
@@ -480,24 +478,35 @@ function makeFamilyShareUrl(memberIndex){
   return base+"?family_setup="+encodeURIComponent(encodeShareSetup(payload));
 }
 async function renderFamilyShareQrs(){
-  if(!window.QRCode) throw new Error("QRコードライブラリを読み込めませんでした。");
-
   const grid=$("shareQrGrid");
+  if(!grid) return;
   grid.innerHTML="";
 
   for(let i=0;i<4;i++){
+    const shareUrl=makeFamilyShareUrl(i);
     const card=document.createElement("div");
     card.className="share-qr-card";
-    card.innerHTML=`<strong>${esc(members[i])} 用</strong><canvas></canvas>
-      <div class="share-qr-note">この本人設定で接続</div>`;
-    grid.appendChild(card);
 
-    const shareUrl=makeFamilyShareUrl(i);
-    await QRCode.toCanvas(card.querySelector("canvas"),shareUrl,{
-      width:180,
-      margin:1,
-      errorCorrectionLevel:"M"
-    });
+    const title=document.createElement("strong");
+    title.textContent=members[i]+" 用";
+    card.appendChild(title);
+
+    const img=document.createElement("img");
+    img.alt=members[i]+" 用QRコード";
+    img.width=180;
+    img.height=180;
+    img.style.maxWidth="100%";
+    img.style.height="auto";
+    // QRServer generates an image from the encoded setup URL.
+    img.src="https://api.qrserver.com/v1/create-qr-code/?size=300x300&margin=8&data="+encodeURIComponent(shareUrl);
+    card.appendChild(img);
+
+    const note=document.createElement("div");
+    note.className="share-qr-note";
+    note.textContent="この本人設定で接続";
+    card.appendChild(note);
+
+    grid.appendChild(card);
   }
 }
 
