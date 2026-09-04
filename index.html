@@ -644,32 +644,49 @@ async function loadEvents(){
 function dayIndex(s){ return Math.round((parseDate(s)-visibleStart)/86400000); }
 
 function assignLanes(sourceEvents){
-  const occupied=Array.from({length:6},()=>[[],[],[]]);
+  // v2.10.1:
+  // 予定数に応じて lane 0,1,2,3,4... を制限なく割り当てる。
+  // 「全員」表示では renderBands() 側で lane 0～3 の4件だけ表示し、
+  // lane 4以降を「＋○件」にまとめる。
+  const occupied=Array.from({length:6},()=>[]);
   const map=new Map();
+
   const sorted=[...sourceEvents].sort((a,b)=>
     (a.event_date.localeCompare(b.event_date)) ||
-    ((b.end_date||b.event_date).localeCompare(a.end_date||a.event_date))
+    ((b.end_date||b.event_date).localeCompare(a.end_date||a.event_date)) ||
+    Number(a.member_index)-Number(b.member_index)
   );
+
   for(const e of sorted){
+    const s=Math.max(0,dayIndex(e.event_date));
+    const ee=Math.min(41,dayIndex(e.end_date||e.event_date));
+
     let lane=0;
-    for(;lane<3;lane++){
+    while(true){
       let ok=true;
-      const s=Math.max(0,dayIndex(e.event_date));
-      const ee=Math.min(41,dayIndex(e.end_date||e.event_date));
+
       for(let i=s;i<=ee;i++){
         const r=Math.floor(i/7);
-        if(occupied[r][lane].includes(i)){ok=false;break}
+        if(!occupied[r][lane]) occupied[r][lane]=new Set();
+        if(occupied[r][lane].has(i)){
+          ok=false;
+          break;
+        }
       }
+
       if(ok) break;
+      lane++;
     }
-    if(lane>2) lane=2;
+
     map.set(e.id,lane);
-    const s=Math.max(0,dayIndex(e.event_date)),ee=Math.min(41,dayIndex(e.end_date||e.event_date));
+
     for(let i=s;i<=ee;i++){
       const r=Math.floor(i/7);
-      occupied[r][lane].push(i);
+      if(!occupied[r][lane]) occupied[r][lane]=new Set();
+      occupied[r][lane].add(i);
     }
   }
+
   return map;
 }
 
@@ -798,7 +815,7 @@ function renderBands(){
       more.className="more-events";
       more.style.gridColumn=`${col}`;
       more.style.gridRow=`${row+1}`;
-      more.textContent=`＋${count}件`;
+      more.textContent=`＋${count}件`; more.dataset.hiddenCount=String(count);
       more.title=`${key} の予定をすべて表示`;
       more.onclick=ev=>{
         ev.stopPropagation();
