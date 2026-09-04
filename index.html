@@ -174,6 +174,48 @@ textarea{min-height:78px;resize:vertical}
   -webkit-user-select:none;
 }
 
+
+/* v2.9 family QR sharing */
+.share-help{
+  font-size:13px;
+  line-height:1.6;
+  padding:10px 12px;
+  background:#eff6ff;
+  border:1px solid #bfdbfe;
+  border-radius:10px;
+  margin-bottom:12px;
+}
+.share-qr-grid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:12px;
+}
+.share-qr-card{
+  border:1px solid var(--line);
+  border-radius:12px;
+  padding:10px;
+  text-align:center;
+  background:#fff;
+}
+.share-qr-card strong{display:block;margin-bottom:6px;font-size:15px}
+.share-qr-card canvas{
+  width:min(100%,180px)!important;
+  height:auto!important;
+  border-radius:8px;
+}
+.share-qr-note{font-size:11px;color:var(--muted);margin-top:6px}
+.share-security-note{
+  margin-top:12px;
+  font-size:11px;
+  color:var(--muted);
+  line-height:1.5;
+}
+@media(max-width:520px){
+  .share-qr-grid{grid-template-columns:1fr 1fr;gap:8px}
+  .share-qr-card{padding:8px 5px}
+  .share-qr-card canvas{width:min(100%,150px)!important}
+}
+
 </style>
 </head>
 <body>
@@ -338,11 +380,35 @@ textarea{min-height:78px;resize:vertical}
 </dialog>
 
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.4/build/qrcode.min.js"></script>
+
+<dialog id="familyShareDialog">
+<div class="modal">
+  <h2>📱 家族にアプリを共有</h2>
+  <div class="share-help">
+    使う本人のQRコードをiPhone/Androidで読み取ってください。<br>
+    接続設定・家族名・本人設定が自動保存されます。<br>
+    iPhoneはSafariで開いたあと「共有」→「ホーム画面に追加」を1回行ってください。
+  </div>
+
+  <div id="shareQrGrid" class="share-qr-grid"></div>
+
+  <div class="share-security-note">
+    QRコードにはこのアプリの接続に必要なSupabaseの公開クライアント情報が含まれます。
+    家族内だけで使用してください。
+  </div>
+
+  <div class="actions">
+    <button class="btn" id="familyShareClose" type="button">閉じる</button>
+  </div>
+</div>
+</dialog>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 const COLORS=["#93c5fd","#f9a8d4","#86efac","#fdba74"];
 const TEXTCOLORS=["#1e3a8a","#9d174d","#166534","#9a3412"];
-const DEFAULT_NAMES=["父","母","子1","子2"];
+const DEFAULT_NAMES=["昌史","麻美子","千晴","昌輝"];
 const CATEGORIES=["仕事","学校","習い事","病院","外出","その他"];
 let members=JSON.parse(localStorage.getItem("family_names")||"null")||DEFAULT_NAMES;
 let current=new Date(); current.setDate(1);
@@ -353,6 +419,86 @@ const pad=n=>String(n).padStart(2,"0");
 const ymd=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
 const parseDate=s=>{const [y,m,d]=s.split("-").map(Number);return new Date(y,m-1,d)};
 function esc(v=""){return String(v).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"}[c]))}
+
+
+function encodeShareSetup(obj){
+  const json=JSON.stringify(obj);
+  return btoa(encodeURIComponent(json))
+    .replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
+}
+function decodeShareSetup(s){
+  let b64=String(s||"").replace(/-/g,"+").replace(/_/g,"/");
+  while(b64.length%4) b64+="=";
+  return JSON.parse(decodeURIComponent(atob(b64)));
+}
+function applySetupFromQr(){
+  try{
+    const params=new URLSearchParams(location.search);
+    const token=params.get("family_setup");
+    if(!token) return false;
+
+    const data=decodeShareSetup(token);
+    if(!data || !data.url || !data.key) throw new Error("共有設定が不完全です");
+
+    localStorage.setItem("supabase_url",String(data.url));
+    localStorage.setItem("supabase_key",String(data.key));
+
+    if(Array.isArray(data.names) && data.names.length===4){
+      localStorage.setItem("family_names",JSON.stringify(data.names));
+      members=data.names;
+    }
+
+    if(Number.isInteger(data.member) && data.member>=0 && data.member<=3){
+      localStorage.setItem("default_member",String(data.member));
+      localStorage.setItem("family_filter",String(data.member));
+    }
+
+    // Remove setup data from the visible URL/history after saving it.
+    const clean=location.origin+location.pathname+(location.hash||"");
+    history.replaceState(null,"",clean);
+    return true;
+  }catch(err){
+    console.error("QR setup error",err);
+    alert("家族共有QRの設定を読み込めませんでした。もう一度QRコードを読み取ってください。");
+    return false;
+  }
+}
+function makeFamilyShareUrl(memberIndex){
+  const url=localStorage.getItem("supabase_url")||"";
+  const key=localStorage.getItem("supabase_key")||"";
+  if(!url || !key) throw new Error("先にSupabase接続設定を保存してください。");
+
+  const base=location.origin+location.pathname;
+  const payload={
+    v:1,
+    url,
+    key,
+    names:members,
+    member:memberIndex
+  };
+  return base+"?family_setup="+encodeURIComponent(encodeShareSetup(payload));
+}
+async function renderFamilyShareQrs(){
+  if(!window.QRCode) throw new Error("QRコードライブラリを読み込めませんでした。");
+
+  const grid=$("shareQrGrid");
+  grid.innerHTML="";
+
+  for(let i=0;i<4;i++){
+    const card=document.createElement("div");
+    card.className="share-qr-card";
+    card.innerHTML=`<strong>${esc(members[i])} 用</strong><canvas></canvas>
+      <div class="share-qr-note">この本人設定で接続</div>`;
+    grid.appendChild(card);
+
+    const shareUrl=makeFamilyShareUrl(i);
+    await QRCode.toCanvas(card.querySelector("canvas"),shareUrl,{
+      width:180,
+      margin:1,
+      errorCorrectionLevel:"M"
+    });
+  }
+}
 
 function rebuild(){
   $("member").innerHTML=members.map((n,i)=>`<option value="${i}">${esc(n)}</option>`).join("");
@@ -656,6 +802,25 @@ $("prevBtn").onclick=()=>{current.setMonth(current.getMonth()-1);loadEvents()};
 $("nextBtn").onclick=()=>{current.setMonth(current.getMonth()+1);loadEvents()};
 $("todayBtn").onclick=()=>{current=new Date();current.setDate(1);loadEvents()};
 $("addBtn").onclick=()=>openNew();
+
+$("familyShareBtn").onclick=async()=>{
+  try{
+    // Save current visible settings first so the QR uses the latest values.
+    members=[0,1,2,3].map(i=>$("name"+i).value.trim()||DEFAULT_NAMES[i]);
+    localStorage.setItem("family_names",JSON.stringify(members));
+    localStorage.setItem("supabase_url",$("supabaseUrl").value.trim());
+    localStorage.setItem("supabase_key",$("supabaseKey").value.trim());
+    rebuild();
+
+    await renderFamilyShareQrs();
+    $("familyShareDialog").showModal();
+  }catch(err){
+    console.error(err);
+    alert(err.message||String(err));
+  }
+};
+$("familyShareClose").onclick=()=>$("familyShareDialog").close();
+
 $("settingsBtn").onclick=()=>{loadSettingsUI();$("settingsDialog").showModal()};
 $("settingsCancel").onclick=()=>$("settingsDialog").close();
 $("settingsSave").onclick=async()=>{
@@ -1283,7 +1448,7 @@ $('applyImportBtn').onclick=applyImport;
 if("serviceWorker" in navigator){
   window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js").catch(console.error));
 }
-loadSettingsUI();selectCategory("仕事");render();connect();
+applySetupFromQr();loadSettingsUI();selectCategory("仕事");render();connect();
 </script>
 </body>
 </html>
