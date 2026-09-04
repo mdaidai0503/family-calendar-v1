@@ -1,7 +1,6 @@
 {
   "name": "家族カレンダー",
   "short_name": "家族カレンダー",
-  "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "background_color": "#ffffff",
@@ -21,5 +20,6 @@
       "type": "image/png",
       "purpose": "any"
     }
-  ]
+  ],
+  "id": "./"
 }

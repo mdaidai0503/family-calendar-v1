@@ -1,4 +1,4 @@
-const CACHE="family-calendar-v2.9.4-custom-icon";
+const CACHE="family-calendar-v2.9.5-holiday-qr-fix";
 const ASSETS=["./index.html","./manifest.webmanifest","./apple-touch-icon.png","./icon-192.png","./icon-512.png"];
 
 self.addEventListener("install",event=>{

@@ -36,6 +36,19 @@ h1{font-size:20px;margin:0}
 .day.other{background:#fafafa;color:#aaa}
 .day.sun .num{color:var(--sun)} .day.sat .num{color:var(--sat)}
 .day.today .num{background:var(--accent);color:#fff;border-radius:999px;width:27px;height:27px;display:inline-flex;align-items:center;justify-content:center}
+.day.holiday .num{color:var(--sun)}
+.holiday-name{
+  margin-top:2px;
+  font-size:9px;
+  line-height:1.15;
+  font-weight:700;
+  color:var(--sun);
+  white-space:normal;
+  overflow:hidden;
+  display:-webkit-box;
+  -webkit-line-clamp:2;
+  -webkit-box-orient:vertical;
+}
 .num{font-size:13px;font-weight:800;margin-bottom:4px}
 .overlay{position:absolute;inset:0;display:grid;grid-template-columns:repeat(7,1fr);grid-template-rows:repeat(6,var(--row-h));pointer-events:none;z-index:5}
 .band{
@@ -80,6 +93,7 @@ textarea{min-height:78px;resize:vertical}
   .topbar{flex-direction:column;align-items:flex-start}
   .month-nav{width:100%;justify-content:space-between}
   .day{padding:4px}
+  .holiday-name{font-size:8px;line-height:1.1}
   .band{height:20px;font-size:9px;padding:3px 4px;margin-top:30px}
   .band.lane1{margin-top:53px}.band.lane2{margin-top:76px}
   .grid{grid-template-columns:1fr}
@@ -422,6 +436,136 @@ const ymd=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
 const parseDate=s=>{const [y,m,d]=s.split("-").map(Number);return new Date(y,m-1,d)};
 function esc(v=""){return String(v).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"}[c]))}
 
+/* v2.9.5: 日本の国民の祝日・振替休日・国民の休日 */
+const HOLIDAY_CACHE = new Map();
+
+function nthMonday(year, month, nth){
+  const d=new Date(year,month-1,1);
+  const firstMonday=1+((8-d.getDay())%7);
+  return firstMonday+(nth-1)*7;
+}
+function vernalEquinoxDay(year){
+  if(year<=1979) return Math.floor(20.8357+0.242194*(year-1980)-Math.floor((year-1983)/4));
+  if(year<=2099) return Math.floor(20.8431+0.242194*(year-1980)-Math.floor((year-1980)/4));
+  return Math.floor(21.8510+0.242194*(year-1980)-Math.floor((year-1980)/4));
+}
+function autumnEquinoxDay(year){
+  if(year<=1979) return Math.floor(23.2588+0.242194*(year-1980)-Math.floor((year-1983)/4));
+  if(year<=2099) return Math.floor(23.2488+0.242194*(year-1980)-Math.floor((year-1980)/4));
+  return Math.floor(24.2488+0.242194*(year-1980)-Math.floor((year-1980)/4));
+}
+function holidayKey(year,month,day){
+  return `${year}-${pad(month)}-${pad(day)}`;
+}
+function buildJapaneseHolidays(year){
+  if(HOLIDAY_CACHE.has(year)) return HOLIDAY_CACHE.get(year);
+  const h=new Map();
+  const add=(m,d,name)=>h.set(holidayKey(year,m,d),name);
+
+  // 元日
+  add(1,1,"元日");
+
+  // 成人の日
+  if(year>=2000) add(1,nthMonday(year,1,2),"成人の日");
+  else if(year>=1949) add(1,15,"成人の日");
+
+  // 建国記念の日
+  if(year>=1967) add(2,11,"建国記念の日");
+
+  // 天皇誕生日
+  if(year>=2020) add(2,23,"天皇誕生日");
+  else if(year>=1989 && year<=2018) add(12,23,"天皇誕生日");
+  else if(year>=1949 && year<=1988) add(4,29,"天皇誕生日");
+
+  // 春分の日
+  if(year>=1949) add(3,vernalEquinoxDay(year),"春分の日");
+
+  // 4/29
+  if(year>=2007) add(4,29,"昭和の日");
+  else if(year>=1989) add(4,29,"みどりの日");
+
+  // 2019年の皇位継承に伴う祝日
+  if(year===2019){
+    add(5,1,"天皇の即位の日");
+    add(10,22,"即位礼正殿の儀");
+  }
+
+  // ゴールデンウィーク
+  if(year>=1949) add(5,3,"憲法記念日");
+  if(year>=2007) add(5,4,"みどりの日");
+  if(year>=1949) add(5,5,"こどもの日");
+
+  // 海の日
+  if(year===2020) add(7,23,"海の日");
+  else if(year===2021) add(7,22,"海の日");
+  else if(year>=2003) add(7,nthMonday(year,7,3),"海の日");
+  else if(year>=1996) add(7,20,"海の日");
+
+  // 山の日
+  if(year===2020) add(8,10,"山の日");
+  else if(year===2021) add(8,8,"山の日");
+  else if(year>=2016) add(8,11,"山の日");
+
+  // 敬老の日
+  if(year>=2003) add(9,nthMonday(year,9,3),"敬老の日");
+  else if(year>=1966) add(9,15,"敬老の日");
+
+  // 秋分の日
+  if(year>=1948) add(9,autumnEquinoxDay(year),"秋分の日");
+
+  // スポーツの日 / 体育の日
+  if(year===2020) add(7,24,"スポーツの日");
+  else if(year===2021) add(7,23,"スポーツの日");
+  else if(year>=2020) add(10,nthMonday(year,10,2),"スポーツの日");
+  else if(year>=2000) add(10,nthMonday(year,10,2),"体育の日");
+  else if(year>=1966) add(10,10,"体育の日");
+
+  // 文化の日・勤労感謝の日
+  if(year>=1948) add(11,3,"文化の日");
+  if(year>=1948) add(11,23,"勤労感謝の日");
+
+  // 国民の休日：祝日に挟まれた平日
+  if(year>=1986){
+    let changed=true;
+    while(changed){
+      changed=false;
+      const start=new Date(year,0,2);
+      const end=new Date(year,11,30);
+      for(let d=new Date(start);d<=end;d.setDate(d.getDate()+1)){
+        const key=ymd(d);
+        if(h.has(key) || d.getDay()===0) continue;
+        const prev=new Date(d); prev.setDate(prev.getDate()-1);
+        const next=new Date(d); next.setDate(next.getDate()+1);
+        if(h.has(ymd(prev)) && h.has(ymd(next))){
+          h.set(key,"国民の休日");
+          changed=true;
+        }
+      }
+    }
+  }
+
+  // 振替休日
+  if(year>=1973){
+    const originals=[...h.entries()];
+    for(const [key] of originals){
+      const d=parseDate(key);
+      if(d.getDay()!==0) continue;
+      let sub=new Date(d);
+      do{sub.setDate(sub.getDate()+1)}while(h.has(ymd(sub)));
+      if(sub.getFullYear()===year && !h.has(ymd(sub))){
+        h.set(ymd(sub),"振替休日");
+      }
+    }
+  }
+
+  HOLIDAY_CACHE.set(year,h);
+  return h;
+}
+function getJapaneseHoliday(date){
+  return buildJapaneseHolidays(date.getFullYear()).get(ymd(date))||"";
+}
+
+
 
 function encodeShareSetup(obj){
   const json=JSON.stringify(obj);
@@ -433,10 +577,19 @@ function decodeShareSetup(s){
   while(b64.length%4) b64+="=";
   return JSON.parse(decodeURIComponent(atob(b64)));
 }
+function getFamilySetupToken(){
+  const params=new URLSearchParams(location.search);
+  let token=params.get("family_setup");
+  if(!token && location.hash){
+    const hash=location.hash.replace(/^#/,"");
+    const hashParams=new URLSearchParams(hash);
+    token=hashParams.get("family_setup");
+  }
+  return token||"";
+}
 function applySetupFromQr(){
   try{
-    const params=new URLSearchParams(location.search);
-    const token=params.get("family_setup");
+    const token=getFamilySetupToken();
     if(!token) return false;
 
     const data=decodeShareSetup(token);
@@ -444,6 +597,8 @@ function applySetupFromQr(){
 
     localStorage.setItem("supabase_url",String(data.url));
     localStorage.setItem("supabase_key",String(data.key));
+    localStorage.setItem("family_setup_token",token);
+    sessionStorage.setItem("family_setup_token",token);
 
     if(Array.isArray(data.names) && data.names.length===4){
       localStorage.setItem("family_names",JSON.stringify(data.names));
@@ -480,7 +635,9 @@ function makeFamilyShareUrl(memberIndex){
     names:members,
     member:memberIndex
   };
-  return base+"?family_setup="+encodeURIComponent(encodeShareSetup(payload));
+  const token=encodeURIComponent(encodeShareSetup(payload));
+  // query + hash の両方に保持し、iPhoneのホーム画面追加時に設定が失われにくくする
+  return base+"?family_setup="+token+"#family_setup="+token;
 }
 async function renderFamilyShareQrs(){
   const grid=$("shareQrGrid");
@@ -682,7 +839,9 @@ function render(){
     if(d.getMonth()!==current.getMonth()) div.classList.add("other");
     if(key===today) div.classList.add("today");
     if(dow===0) div.classList.add("sun"); if(dow===6) div.classList.add("sat");
-    div.innerHTML=`<div class="num">${d.getDate()}</div>`;
+    const holidayName=getJapaneseHoliday(d);
+    if(holidayName) div.classList.add("holiday");
+    div.innerHTML=`<div class="num">${d.getDate()}</div>${holidayName?`<div class="holiday-name">${esc(holidayName)}</div>`:""}`;
     div.onclick=()=>openNew(key);
     cal.appendChild(div);
   }
@@ -1383,8 +1542,7 @@ function isStandaloneApp(){
          window.navigator.standalone === true;
 }
 function showQrInstallNotice(){
-  const params=new URLSearchParams(location.search);
-  if(!params.get("family_setup") || isStandaloneApp()) return;
+  if(!getFamilySetupToken() || isStandaloneApp()) return;
 
   setTimeout(()=>{
     const existing=document.getElementById("qrInstallNotice");
@@ -1485,7 +1643,30 @@ function showQrInstallNotice(){
 if("serviceWorker" in navigator){
   window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js").catch(console.error));
 }
-const setupApplied=applySetupFromQr();
+let setupApplied=applySetupFromQr();
+
+// iPhoneのホーム画面起動でURLのfamily_setupが外れた場合の端末内バックアップ
+if(!setupApplied && (!localStorage.getItem("supabase_url") || !localStorage.getItem("supabase_key"))){
+  const savedToken=localStorage.getItem("family_setup_token") || sessionStorage.getItem("family_setup_token") || "";
+  if(savedToken){
+    try{
+      const data=decodeShareSetup(savedToken);
+      if(data && data.url && data.key){
+        localStorage.setItem("supabase_url",String(data.url));
+        localStorage.setItem("supabase_key",String(data.key));
+        if(Array.isArray(data.names) && data.names.length===4){
+          localStorage.setItem("family_names",JSON.stringify(data.names));
+          members=data.names;
+        }
+        if(Number.isInteger(data.member) && data.member>=0 && data.member<=3){
+          localStorage.setItem("default_member",String(data.member));
+          localStorage.setItem("calendar_filter",String(data.member));
+        }
+        setupApplied=true;
+      }
+    }catch(e){ console.warn("setup token restore failed",e); }
+  }
+}
 if(setupApplied){
   activeFilter=localStorage.getItem("calendar_filter")||"all";
 }
