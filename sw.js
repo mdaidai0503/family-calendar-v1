@@ -1,5 +1,5 @@
-const CACHE="family-calendar-v2.9.3-pwa-setup-persist";
-const ASSETS=["./index.html","./manifest.webmanifest"];
+const CACHE="family-calendar-v2.9.4-custom-icon";
+const ASSETS=["./index.html","./manifest.webmanifest","./apple-touch-icon.png","./icon-192.png","./icon-512.png"];
 
 self.addEventListener("install",event=>{
   self.skipWaiting();
