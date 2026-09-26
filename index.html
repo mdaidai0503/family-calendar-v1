@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <title>家族カレンダー</title>
-<link rel="manifest" href="manifest.webmanifest">
+<link rel="manifest" href="./manifest.webmanifest">
 <style>
 :root{
   --bg:#f4f6f8;--card:#fff;--text:#202124;--muted:#6b7280;--line:#e5e7eb;
@@ -93,9 +93,197 @@ textarea{min-height:78px;resize:vertical}
 .source-card{border:1px solid var(--line);border-radius:12px;padding:11px;background:#fff}
 .source-card-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
 .source-meta{font-size:12px;color:var(--muted);margin-top:4px}
-.source-preview{width:100%;max-height:60vh;object-fit:contain;background:#111;border-radius:10px;margin-top:10px}
+.source-preview{width:100%;max-height:60vh;object-fit:contain;background:#111;border-radius:10px;margin-top:10px}.source-inline-preview{margin-top:8px}.source-inline-preview .source-preview{max-height:340px;background:#f8fafc}
 .source-actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:8px}
 @media(max-width:700px){.source-btn{font-size:11px;padding:8px 6px}}
+
+/* v2.6.1 UI balance */
+.header-controls{display:flex;align-items:center;gap:10px;min-width:0}
+.quick-actions{display:flex;align-items:stretch;gap:6px;min-width:0}
+.quick-btn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-width:62px;min-height:58px;padding:6px 7px;line-height:1.15}
+.quick-btn span{font-size:10px;white-space:nowrap}
+.settings-quick{min-width:52px}
+@media(max-width:700px){
+  header{padding:9px 10px 8px}
+  .topbar{gap:8px}
+  h1{font-size:20px}
+  .header-controls{width:100%;display:grid;grid-template-columns:1fr;gap:7px}
+  .month-nav{width:100%;display:grid;grid-template-columns:44px 54px minmax(112px,1fr) 44px;gap:6px;justify-content:stretch}
+  .nav-btn{min-height:44px;padding:7px 6px;font-size:18px}
+  .today-btn{font-size:12px}
+  .month-label{min-width:0;font-size:17px;display:flex;align-items:center;justify-content:center}
+  .quick-actions{width:100%;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:5px}
+  .quick-btn,.settings-quick{min-width:0;width:100%;min-height:58px;padding:5px 2px;border-radius:11px;font-size:16px}
+  .quick-btn span{font-size:9px;letter-spacing:-.2px}
+  .filter-nav{height:78px;padding:7px 7px calc(8px + env(safe-area-inset-bottom));gap:5px}
+  .filter-btn{font-size:12px;padding:9px 2px;border-radius:14px;min-height:45px}
+  .filter-dot{width:9px;height:9px;margin-right:4px}
+  .floating{bottom:99px}
+  .app{padding-bottom:90px}
+}
+
+
+
+/* v2.7: iPhone date editing + duplicate */
+.date-display-row{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) 70px;
+  gap:8px;
+  align-items:center;
+}
+.date-display-row > input[type="text"]{
+  pointer-events:none;
+  background:#f8fafc;
+  color:var(--text);
+  font-weight:700;
+}
+.date-change-control{
+  position:relative;
+  height:44px;
+  padding:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  overflow:hidden;
+  color:var(--accent);
+  border-color:#bfdbfe;
+  font-size:13px;
+  font-weight:700;
+}
+.date-change-control span{pointer-events:none}
+.date-overlay-picker{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  opacity:0;
+  cursor:pointer;
+  pointer-events:auto;
+  -webkit-appearance:none;
+  appearance:none;
+}
+
+
+/* v2.8: calendar horizontal swipe */
+.calendar-wrap{
+  touch-action: pan-y;
+  overscroll-behavior-x: contain;
+}
+.calendar-swipe-hint{
+  user-select:none;
+  -webkit-user-select:none;
+}
+
+
+/* v2.9 family QR sharing */
+.share-help{
+  font-size:13px;
+  line-height:1.6;
+  padding:10px 12px;
+  background:#eff6ff;
+  border:1px solid #bfdbfe;
+  border-radius:10px;
+  margin-bottom:12px;
+}
+.share-qr-grid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:12px;
+}
+.share-qr-card{
+  border:1px solid var(--line);
+  border-radius:12px;
+  padding:10px;
+  text-align:center;
+  background:#fff;
+}
+.share-qr-card strong{display:block;margin-bottom:6px;font-size:15px}
+.share-qr-card img{
+  width:min(100%,180px)!important;
+  height:auto!important;
+  border-radius:8px;
+}
+.share-qr-note{font-size:11px;color:var(--muted);margin-top:6px}
+.share-security-note{
+  margin-top:12px;
+  font-size:11px;
+  color:var(--muted);
+  line-height:1.5;
+}
+@media(max-width:520px){
+  .share-qr-grid{grid-template-columns:1fr 1fr;gap:8px}
+  .share-qr-card{padding:8px 5px}
+  .share-qr-card img{width:min(100%,150px)!important}
+}
+
+
+/* v2.10: 全員表示 4件 + 「+○件」 */
+.calendar-wrap.all-mode{--row-h:162px}
+.calendar-wrap.all-mode .band{height:20px;margin-top:34px;font-size:10px;padding:3px 5px}
+.calendar-wrap.all-mode .band.lane1{margin-top:60px}
+.calendar-wrap.all-mode .band.lane2{margin-top:86px}
+.calendar-wrap.all-mode .band.lane3{margin-top:112px}
+.more-events{
+  height:20px;
+  align-self:start;
+  margin:137px 4px 0;
+  border:1px solid #cbd5e1;
+  background:#fff;
+  border-radius:7px;
+  font-size:10px;
+  font-weight:800;
+  color:#475569;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  pointer-events:auto;
+  cursor:pointer;
+  box-shadow:0 1px 2px rgba(0,0,0,.06);
+}
+.day-events-list{display:flex;flex-direction:column;gap:8px}
+.day-event-item{
+  width:100%;
+  border:1px solid var(--line);
+  border-left:6px solid #cbd5e1;
+  border-radius:10px;
+  background:#fff;
+  padding:10px 11px;
+  text-align:left;
+  cursor:pointer;
+}
+.day-event-item-title{font-size:14px;font-weight:800;margin-bottom:4px}
+.day-event-item-meta{font-size:12px;color:var(--muted);line-height:1.45}
+@media(max-width:700px){
+  .calendar-wrap.all-mode{--row-h:138px}
+  .calendar-wrap.all-mode .band{height:18px;margin-top:28px;font-size:8.5px;padding:2px 3px}
+  .calendar-wrap.all-mode .band.lane1{margin-top:49px}
+  .calendar-wrap.all-mode .band.lane2{margin-top:70px}
+  .calendar-wrap.all-mode .band.lane3{margin-top:91px}
+  .calendar-wrap.all-mode .more-events{height:18px;margin-top:113px;font-size:9px}
+}
+
+
+/* v2.10.2: 日本の国民の祝日 */
+.day.holiday .num{color:var(--sun)}
+.day.holiday .holiday-name{
+  position:absolute;
+  top:6px;
+  right:4px;
+  max-width:calc(100% - 36px);
+  font-size:9px;
+  line-height:1.15;
+  font-weight:800;
+  color:var(--sun);
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  pointer-events:none;
+}
+.day.today.holiday .num{color:#fff}
+@media(max-width:700px){
+  .day.holiday .holiday-name{top:4px;right:3px;font-size:7.5px;max-width:calc(100% - 31px)}
+}
+
 </style>
 </head>
 <body>
@@ -103,15 +291,20 @@ textarea{min-height:78px;resize:vertical}
 <header>
   <div class="topbar">
     <h1>家族カレンダー</h1>
-    <div class="month-nav">
-      <button class="btn" id="prevBtn">‹</button>
-      <button class="btn" id="todayBtn">今日</button>
-      <div class="month-label" id="monthLabel"></div>
-      <button class="btn" id="nextBtn">›</button>
-      <button class="btn source-btn" id="monthlySourceBtn">📅月間元予定</button>
-      <button class="btn source-btn" id="weeklySourceBtn">📄週間元予定</button>
-      <button class="btn import-btn" id="importBtn">📷予定表取込</button>
-      <button class="btn" id="settingsBtn">設定</button>
+    <div class="header-controls">
+      <div class="month-nav">
+        <button class="btn nav-btn" id="prevBtn">‹</button>
+        <button class="btn nav-btn today-btn" id="todayBtn">今日</button>
+        <div class="month-label" id="monthLabel"></div>
+        <button class="btn nav-btn" id="nextBtn">›</button>
+      </div>
+      <div class="quick-actions">
+        <button class="btn source-btn quick-btn" id="monthlySourceBtn">📅<span>月間元予定</span></button>
+        <button class="btn source-btn quick-btn" id="weeklySourceBtn">📄<span>週間元予定</span></button>
+        <button class="btn import-btn quick-btn" id="photoImportBtn">📷<span>週間予定取込</span></button>
+        <button class="btn import-btn quick-btn" id="importBtn">📥<span>Excel取込</span></button>
+        <button class="btn quick-btn settings-quick" id="settingsBtn">⚙️<span>設定</span></button>
+      </div>
     </div>
   </div>
 </header>
@@ -131,12 +324,30 @@ textarea{min-height:78px;resize:vertical}
 
 <dialog id="eventDialog">
 <form method="dialog" class="modal" id="eventForm">
-  <h2 id="eventTitle">予定を登録</h2>
+  <h2 id="eventTitle" tabindex="-1">予定を登録</h2>
   <input type="hidden" id="eventId">
 
   <div class="grid">
-    <div class="field"><label>開始日</label><input type="date" id="startDate" required></div>
-    <div class="field"><label>終了日</label><input type="date" id="endDate" required></div>
+    <div class="field">
+      <label>開始日</label>
+      <div class="date-display-row">
+        <input type="text" id="startDate" inputmode="none" autocomplete="off" readonly required tabindex="-1">
+        <div class="btn date-change-control">
+          <span>変更</span>
+          <input type="date" id="startDatePicker" class="date-overlay-picker" aria-label="開始日を変更">
+        </div>
+      </div>
+    </div>
+    <div class="field">
+      <label>終了日</label>
+      <div class="date-display-row">
+        <input type="text" id="endDate" inputmode="none" autocomplete="off" readonly required tabindex="-1">
+        <div class="btn date-change-control">
+          <span>変更</span>
+          <input type="date" id="endDatePicker" class="date-overlay-picker" aria-label="終了日を変更">
+        </div>
+      </div>
+    </div>
   </div>
   <div class="summary" id="rangeSummary"></div>
 
@@ -163,20 +374,55 @@ textarea{min-height:78px;resize:vertical}
 
   <div class="actions">
     <button type="button" class="btn danger hidden" id="deleteBtn">削除</button>
+    <button type="button" class="btn hidden" id="duplicateBtn">複製</button>
     <button type="button" class="btn" id="cancelBtn">キャンセル</button>
     <button type="submit" class="btn primary">保存</button>
   </div>
 </form>
 </dialog>
 
-<dialog id="importDialog"><div class="modal"><h2>📷 サンダーバーズ予定表取込</h2><div class="import-note">昌輝（家族4）の既存「サンダーバーズユース」予定に、週予定表から時間・場所・持ち物・備考を追加します。反映前に必ず内容を確認できます。</div><div class="field" style="margin-top:12px"><label>予定表の写真</label><input id="importFile" type="file" accept="image/*" capture="environment"></div><img id="importPreview" class="import-preview hidden" alt="予定表プレビュー"><div id="importStatus" class="import-status">写真を選択してください。</div><div class="progress"><i id="importProgress"></i></div><div class="actions"><button class="btn" type="button" id="importClose">閉じる</button><button class="btn primary" type="button" id="ocrBtn">写真を解析</button></div><div id="ocrArea" class="hidden" style="margin-top:14px;border-top:1px solid var(--line);padding-top:14px"><div class="field"><label>OCR結果（必要なら修正できます）</label><textarea id="ocrText" class="ocr-raw"></textarea></div><div class="actions"><button class="btn primary" type="button" id="parseBtn">予定を照合</button></div></div><div id="reviewArea" class="hidden" style="margin-top:14px;border-top:1px solid var(--line);padding-top:14px"><strong>反映内容の確認</strong><div id="reviewList" class="review-list"></div><div class="actions"><button class="btn primary" type="button" id="applyImportBtn">チェックした予定を反映</button></div></div></div></dialog>
+
+<dialog id="photoImportDialog">
+<div class="modal">
+  <h2>📷 週間予定表を写真から取込</h2>
+  <div class="import-note">
+    元写真を保存し、AI画像解析で日付・時間・場所・持ち物・備考を読み取ってExcelデータを自動生成します。
+    その後、昌輝（家族4）の既存予定と照合し、反映前に必ず内容を確認・修正できます。
+  </div>
+  <div class="field" style="margin-top:12px">
+    <label>週間予定表の写真</label>
+    <input id="photoImportFile" type="file" accept="image/*">
+  </div>
+  <img id="photoImportPreview" class="import-preview hidden" alt="週間予定表プレビュー">
+  <div id="photoImportStatus" class="import-status">写真を選択してください。</div>
+  <div class="progress"><i id="photoImportProgress"></i></div>
+  <div class="actions">
+    <button class="btn" type="button" id="photoImportClose">閉じる</button>
+    <button class="btn primary" type="button" id="photoOcrBtn">AIで写真を解析</button>
+  </div>
+
+  <div id="photoReviewArea" class="hidden" style="margin-top:14px;border-top:1px solid var(--line);padding-top:14px">
+    <strong>Excel変換結果・反映内容の確認</strong>
+    <div class="import-note" style="margin-top:8px">
+      この表が自動生成されるExcelの内容です。誤読があればここで直してから反映してください。
+    </div>
+    <div id="photoReviewList" class="review-list"></div>
+    <div class="actions">
+      <button class="btn" type="button" id="photoExcelDownloadBtn">Excelを保存</button>
+      <button class="btn primary" type="button" id="photoApplyBtn">確認した予定を反映</button>
+    </div>
+  </div>
+</div>
+</dialog>
+
+<dialog id="importDialog"><div class="modal"><h2>📥 サンダーバーズ予定表 Excel取込</h2><div class="import-note">昌輝（家族4）の既存「サンダーバーズユース」予定に、Excelの「日付・予定・場所・時間・内容・持ち物・備考」を反映します。反映前に必ず内容を確認できます。</div><div class="field" style="margin-top:12px"><label>週間予定表Excel</label><input id="importFile" type="file" accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"></div><div id="importStatus" class="import-status">Excelファイルを選択してください。</div><div class="actions"><button class="btn" type="button" id="importClose">閉じる</button><button class="btn primary" type="button" id="excelReadBtn">Excelを読み取る</button></div><div id="reviewArea" class="hidden" style="margin-top:14px;border-top:1px solid var(--line);padding-top:14px"><strong>反映内容の確認</strong><div id="reviewList" class="review-list"></div><div class="actions"><button class="btn primary" type="button" id="applyImportBtn">チェックした予定を反映</button></div></div></div></dialog>
 
 <dialog id="sourceDialog">
 <div class="modal">
   <h2 id="sourceDialogTitle">元予定表</h2>
   <div id="sourceDialogNote" class="import-note"></div>
   <div id="monthlyUploadArea" class="hidden" style="margin-top:12px">
-    <div class="field"><label>表示中の月の月間予定表写真を登録</label><input id="monthlySourceFile" type="file" accept="image/*" capture="environment"></div>
+    <div class="field"><label>表示中の月の月間予定表（Excel・画像・PDF）</label><input id="monthlySourceFile" type="file" accept=".xlsx,.xls,.pdf,image/*,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,application/pdf"></div>
     <div class="actions"><button class="btn primary" type="button" id="monthlySourceUploadBtn">月間予定表を保存</button></div>
   </div>
   <div id="sourceStatus" class="import-status">読み込み中…</div>
@@ -184,6 +430,17 @@ textarea{min-height:78px;resize:vertical}
   <div class="actions"><button class="btn" type="button" id="sourceCloseBtn">閉じる</button></div>
 </div>
 </dialog>
+
+<dialog id="dayEventsDialog">
+  <div class="modal">
+    <h2 id="dayEventsTitle">この日の予定</h2>
+    <div id="dayEventsList" class="day-events-list"></div>
+    <div class="actions">
+      <button type="button" class="btn" id="dayEventsClose">閉じる</button>
+    </div>
+  </div>
+</dialog>
+
 <dialog id="settingsDialog">
 <div class="modal">
   <h2>設定</h2>
@@ -195,18 +452,41 @@ textarea{min-height:78px;resize:vertical}
   <div class="field"><label>家族4</label><input id="name3"></div>
   <div class="field"><label>この端末の初期選択</label><select id="defaultMember"></select></div>
   <div class="actions">
+    <button class="btn" id="familyShareBtn" type="button">📱 家族共有QR</button>
     <button class="btn" id="settingsCancel">閉じる</button>
     <button class="btn primary" id="settingsSave">保存して接続</button>
   </div>
 </div>
 </dialog>
 
-<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<dialog id="familyShareDialog">
+<div class="modal">
+  <h2>📱 家族にアプリを共有</h2>
+  <div class="share-help">
+    使う本人のQRコードをiPhone/Androidで読み取ってください。<br>
+    接続設定・家族名・本人設定が自動保存されます。<br>
+    iPhoneはSafariで開いたあと「共有」→「ホーム画面に追加」を1回行ってください。
+  </div>
+
+  <div id="shareQrGrid" class="share-qr-grid"></div>
+
+  <div class="share-security-note">
+    QRコードにはこのアプリの接続に必要なSupabaseの公開クライアント情報が含まれます。
+    家族内だけで使用してください。
+  </div>
+
+  <div class="actions">
+    <button class="btn" id="familyShareClose" type="button">閉じる</button>
+  </div>
+</div>
+</dialog>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 const COLORS=["#93c5fd","#f9a8d4","#86efac","#fdba74"];
 const TEXTCOLORS=["#1e3a8a","#9d174d","#166534","#9a3412"];
-const DEFAULT_NAMES=["父","母","子1","子2"];
+const DEFAULT_NAMES=["昌史","麻美子","千晴","昌輝"];
 const CATEGORIES=["仕事","学校","習い事","病院","外出","その他"];
 let members=JSON.parse(localStorage.getItem("family_names")||"null")||DEFAULT_NAMES;
 let current=new Date(); current.setDate(1);
@@ -217,6 +497,99 @@ const pad=n=>String(n).padStart(2,"0");
 const ymd=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
 const parseDate=s=>{const [y,m,d]=s.split("-").map(Number);return new Date(y,m-1,d)};
 function esc(v=""){return String(v).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"}[c]))}
+
+
+function encodeShareSetup(obj){
+  const json=JSON.stringify(obj);
+  return btoa(encodeURIComponent(json))
+    .replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
+}
+function decodeShareSetup(s){
+  let b64=String(s||"").replace(/-/g,"+").replace(/_/g,"/");
+  while(b64.length%4) b64+="=";
+  return JSON.parse(decodeURIComponent(atob(b64)));
+}
+function applySetupFromQr(){
+  try{
+    const params=new URLSearchParams(location.search);
+    const token=params.get("family_setup");
+    if(!token) return false;
+
+    const data=decodeShareSetup(token);
+    if(!data || !data.url || !data.key) throw new Error("共有設定が不完全です");
+
+    localStorage.setItem("supabase_url",String(data.url));
+    localStorage.setItem("supabase_key",String(data.key));
+
+    if(Array.isArray(data.names) && data.names.length===4){
+      localStorage.setItem("family_names",JSON.stringify(data.names));
+      members=data.names;
+    }
+
+    if(Number.isInteger(data.member) && data.member>=0 && data.member<=3){
+      localStorage.setItem("default_member",String(data.member));
+      localStorage.setItem("calendar_filter",String(data.member));
+    }
+
+    // IMPORTANT (iPhone PWA):
+    // Keep the setup parameter in the page URL.
+    // When this page is added to the Home Screen, iOS can use this exact
+    // document URL as the installed app's launch URL. The app can then
+    // restore the connection settings inside the standalone PWA container.
+    return true;
+  }catch(err){
+    console.error("QR setup error",err);
+    alert("家族共有QRの設定を読み込めませんでした。もう一度QRコードを読み取ってください。");
+    return false;
+  }
+}
+function makeFamilyShareUrl(memberIndex){
+  const url=localStorage.getItem("supabase_url")||"";
+  const key=localStorage.getItem("supabase_key")||"";
+  if(!url || !key) throw new Error("先にSupabase接続設定を保存してください。");
+
+  const base=location.origin+location.pathname;
+  const payload={
+    v:1,
+    url,
+    key,
+    names:members,
+    member:memberIndex
+  };
+  return base+"?family_setup="+encodeURIComponent(encodeShareSetup(payload));
+}
+async function renderFamilyShareQrs(){
+  const grid=$("shareQrGrid");
+  if(!grid) return;
+  grid.innerHTML="";
+
+  for(let i=0;i<4;i++){
+    const shareUrl=makeFamilyShareUrl(i);
+    const card=document.createElement("div");
+    card.className="share-qr-card";
+
+    const title=document.createElement("strong");
+    title.textContent=members[i]+" 用";
+    card.appendChild(title);
+
+    const img=document.createElement("img");
+    img.alt=members[i]+" 用QRコード";
+    img.width=180;
+    img.height=180;
+    img.style.maxWidth="100%";
+    img.style.height="auto";
+    // QRServer generates an image from the encoded setup URL.
+    img.src="https://api.qrserver.com/v1/create-qr-code/?size=300x300&margin=8&data="+encodeURIComponent(shareUrl);
+    card.appendChild(img);
+
+    const note=document.createElement("div");
+    note.className="share-qr-note";
+    note.textContent="この本人設定で接続";
+    card.appendChild(note);
+
+    grid.appendChild(card);
+  }
+}
 
 function rebuild(){
   $("member").innerHTML=members.map((n,i)=>`<option value="${i}">${esc(n)}</option>`).join("");
@@ -293,39 +666,111 @@ async function loadEvents(){
 function dayIndex(s){ return Math.round((parseDate(s)-visibleStart)/86400000); }
 
 function assignLanes(sourceEvents){
-  const occupied=Array.from({length:6},()=>[[],[],[]]);
+  // v2.10.1:
+  // 予定数に応じて lane 0,1,2,3,4... を制限なく割り当てる。
+  // 「全員」表示では renderBands() 側で lane 0～3 の4件だけ表示し、
+  // lane 4以降を「＋○件」にまとめる。
+  const occupied=Array.from({length:6},()=>[]);
   const map=new Map();
+
   const sorted=[...sourceEvents].sort((a,b)=>
     (a.event_date.localeCompare(b.event_date)) ||
-    ((b.end_date||b.event_date).localeCompare(a.end_date||a.event_date))
+    ((b.end_date||b.event_date).localeCompare(a.end_date||a.event_date)) ||
+    Number(a.member_index)-Number(b.member_index)
   );
+
   for(const e of sorted){
+    const s=Math.max(0,dayIndex(e.event_date));
+    const ee=Math.min(41,dayIndex(e.end_date||e.event_date));
+
     let lane=0;
-    for(;lane<3;lane++){
+    while(true){
       let ok=true;
-      const s=Math.max(0,dayIndex(e.event_date));
-      const ee=Math.min(41,dayIndex(e.end_date||e.event_date));
+
       for(let i=s;i<=ee;i++){
         const r=Math.floor(i/7);
-        if(occupied[r][lane].includes(i)){ok=false;break}
+        if(!occupied[r][lane]) occupied[r][lane]=new Set();
+        if(occupied[r][lane].has(i)){
+          ok=false;
+          break;
+        }
       }
+
       if(ok) break;
+      lane++;
     }
-    if(lane>2) lane=2;
+
     map.set(e.id,lane);
-    const s=Math.max(0,dayIndex(e.event_date)),ee=Math.min(41,dayIndex(e.end_date||e.event_date));
+
     for(let i=s;i<=ee;i++){
       const r=Math.floor(i/7);
-      occupied[r][lane].push(i);
+      if(!occupied[r][lane]) occupied[r][lane]=new Set();
+      occupied[r][lane].add(i);
     }
   }
+
   return map;
+}
+
+function eventsForDay(dayKey){
+  return getVisibleEvents().filter(e=>{
+    const s=e.event_date;
+    const en=e.end_date||e.event_date;
+    return s<=dayKey && en>=dayKey;
+  });
+}
+
+function showDayEvents(dayKey){
+  const list=eventsForDay(dayKey).slice().sort((a,b)=>{
+    const ta=(a.start_time||"99:99").slice(0,5);
+    const tb=(b.start_time||"99:99").slice(0,5);
+    return ta.localeCompare(tb) || Number(a.member_index)-Number(b.member_index) ||
+           String(a.title||"").localeCompare(String(b.title||""));
+  });
+
+  const d=parseDate(dayKey);
+  $("dayEventsTitle").textContent=`${d.getMonth()+1}月${d.getDate()}日の予定（${list.length}件）`;
+  const box=$("dayEventsList");
+  box.innerHTML="";
+
+  for(const e of list){
+    const idx=Math.max(0,Math.min(3,Number(e.member_index)||0));
+    const btn=document.createElement("button");
+    btn.type="button";
+    btn.className="day-event-item";
+    btn.style.borderLeftColor=COLORS[idx];
+
+    const time=e.all_day ? "終日" :
+      [String(e.start_time||"").slice(0,5),String(e.end_time||"").slice(0,5)]
+        .filter(Boolean).join("～");
+
+    const range=(e.end_date && e.end_date!==e.event_date)
+      ? `${e.event_date}～${e.end_date}`
+      : e.event_date;
+
+    btn.innerHTML=
+      `<div class="day-event-item-title">${esc(e.title||"（予定名なし）")}</div>`+
+      `<div class="day-event-item-meta">${esc(members[idx]||"?")}　${esc(time||"時間未設定")}<br>${esc(range)}</div>`;
+
+    btn.onclick=()=>{
+      $("dayEventsDialog").close();
+      openEdit(e);
+    };
+    box.appendChild(btn);
+  }
+
+  $("dayEventsDialog").showModal();
 }
 
 function renderBands(){
   const overlay=$("overlay"); overlay.innerHTML="";
   const visibleEvents=getVisibleEvents();
   const laneMap=assignLanes(visibleEvents);
+  const allMode=activeFilter==="all";
+  const hiddenByDay=new Map();
+
+  $("calendar").parentElement.classList.toggle("all-mode",allMode);
+
   for(const e of visibleEvents){
     const actualStart=parseDate(e.event_date);
     const actualEnd=parseDate(e.end_date||e.event_date);
@@ -337,8 +782,18 @@ function renderBands(){
     const sIdx=Math.round((s-visibleStart)/86400000);
     const eIdx=Math.round((en-visibleStart)/86400000);
     const lane=laneMap.get(e.id)||0;
-    let cursor=sIdx;
 
+    // 「全員」では4件目まで表示。5件目以降は日ごとに +○件 へまとめる。
+    if(allMode && lane>=4){
+      for(let di=sIdx;di<=eIdx;di++){
+        const d=new Date(visibleStart); d.setDate(visibleStart.getDate()+di);
+        const key=ymd(d);
+        hiddenByDay.set(key,(hiddenByDay.get(key)||0)+1);
+      }
+      continue;
+    }
+
+    let cursor=sIdx;
     while(cursor<=eIdx){
       const row=Math.floor(cursor/7);
       const rowEnd=row*7+6;
@@ -362,12 +817,153 @@ function renderBands(){
       band.style.color=TEXTCOLORS[idx];
       band.textContent=`${e.title}（${members[idx]||"?"}）`;
       band.title=`${e.event_date} ～ ${e.end_date||e.event_date}　${e.title}`;
-      band.onclick=()=>openEdit(e);
+      band.onclick=ev=>{ev.stopPropagation();openEdit(e)};
       overlay.appendChild(band);
 
       cursor=segEnd+1;
     }
   }
+
+  if(allMode){
+    for(const [key,count] of hiddenByDay){
+      if(count<=0) continue;
+      const di=dayIndex(key);
+      if(di<0 || di>41) continue;
+
+      const row=Math.floor(di/7);
+      const col=(di%7)+1;
+      const more=document.createElement("button");
+      more.type="button";
+      more.className="more-events";
+      more.style.gridColumn=`${col}`;
+      more.style.gridRow=`${row+1}`;
+      more.textContent=`＋${count}件`; more.dataset.hiddenCount=String(count);
+      more.title=`${key} の予定をすべて表示`;
+      more.onclick=ev=>{
+        ev.stopPropagation();
+        showDayEvents(key);
+      };
+      overlay.appendChild(more);
+    }
+  }
+}
+
+
+// v2.10.2 日本の国民の祝日
+// 現行法ベース。春分・秋分は国立天文台の近似式を使用。
+// 振替休日と「国民の休日」（祝日に挟まれた平日）も自動計算する。
+const JP_HOLIDAY_CACHE = new Map();
+
+function nthWeekdayOfMonth(year, month, weekday, nth){
+  const first = new Date(year, month - 1, 1);
+  const offset = (weekday - first.getDay() + 7) % 7;
+  return new Date(year, month - 1, 1 + offset + (nth - 1) * 7);
+}
+function jpEquinoxDay(year, spring){
+  // 1980～2099で十分な精度を持つ一般的な近似式
+  const base = spring ? 20.8431 : 23.2488;
+  const y = year - 1980;
+  return Math.floor(base + 0.242194 * y - Math.floor(y / 4));
+}
+function dateKeyFromParts(y,m,d){
+  return `${y}-${String(m).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
+}
+function addHoliday(map,y,m,d,name){
+  map.set(dateKeyFromParts(y,m,d),name);
+}
+function buildJapaneseHolidays(year){
+  if(JP_HOLIDAY_CACHE.has(year)) return JP_HOLIDAY_CACHE.get(year);
+  const h = new Map();
+
+  // 固定・ハッピーマンデー
+  addHoliday(h,year,1,1,"元日");
+  if(year>=2000){
+    const d=nthWeekdayOfMonth(year,1,1,2); addHoliday(h,year,1,d.getDate(),"成人の日");
+  }else{
+    addHoliday(h,year,1,15,"成人の日");
+  }
+  addHoliday(h,year,2,11,"建国記念の日");
+  if(year>=2020) addHoliday(h,year,2,23,"天皇誕生日");
+
+  addHoliday(h,year,3,jpEquinoxDay(year,true),"春分の日");
+  addHoliday(h,year,4,29,year>=2007?"昭和の日":"みどりの日");
+  addHoliday(h,year,5,3,"憲法記念日");
+  addHoliday(h,year,5,4,"みどりの日");
+  addHoliday(h,year,5,5,"こどもの日");
+
+  // 海の日（2020/2021の五輪特例を含む）
+  if(year===2020) addHoliday(h,year,7,23,"海の日");
+  else if(year===2021) addHoliday(h,year,7,22,"海の日");
+  else if(year>=2003){
+    const d=nthWeekdayOfMonth(year,7,1,3); addHoliday(h,year,7,d.getDate(),"海の日");
+  }else if(year>=1996){
+    addHoliday(h,year,7,20,"海の日");
+  }
+
+  // 山の日（2020/2021の五輪特例を含む）
+  if(year===2020) addHoliday(h,year,8,10,"山の日");
+  else if(year===2021) addHoliday(h,year,8,8,"山の日");
+  else if(year>=2016) addHoliday(h,year,8,11,"山の日");
+
+  if(year>=2003){
+    const d=nthWeekdayOfMonth(year,9,1,3); addHoliday(h,year,9,d.getDate(),"敬老の日");
+  }else{
+    addHoliday(h,year,9,15,"敬老の日");
+  }
+  addHoliday(h,year,9,jpEquinoxDay(year,false),"秋分の日");
+
+  // スポーツの日 / 体育の日（2020/2021の五輪特例を含む）
+  if(year===2020) addHoliday(h,year,7,24,"スポーツの日");
+  else if(year===2021) addHoliday(h,year,7,23,"スポーツの日");
+  else if(year>=2020){
+    const d=nthWeekdayOfMonth(year,10,1,2); addHoliday(h,year,10,d.getDate(),"スポーツの日");
+  }else if(year>=2000){
+    const d=nthWeekdayOfMonth(year,10,1,2); addHoliday(h,year,10,d.getDate(),"体育の日");
+  }else{
+    addHoliday(h,year,10,10,"体育の日");
+  }
+
+  addHoliday(h,year,11,3,"文化の日");
+  addHoliday(h,year,11,23,"勤労感謝の日");
+
+  // 2019年の即位関連特例
+  if(year===2019){
+    addHoliday(h,2019,5,1,"天皇の即位の日");
+    addHoliday(h,2019,10,22,"即位礼正殿の儀");
+  }
+
+  // 祝日に挟まれた平日を「国民の休日」にする。
+  // 先に固定祝日だけを使って判定し、その後に振替休日を追加。
+  const start = new Date(year,0,2);
+  const end = new Date(year,11,30);
+  for(let d=new Date(start); d<=end; d.setDate(d.getDate()+1)){
+    const key=ymd(d);
+    if(h.has(key) || d.getDay()===0) continue;
+    const prev=new Date(d); prev.setDate(d.getDate()-1);
+    const next=new Date(d); next.setDate(d.getDate()+1);
+    if(h.has(ymd(prev)) && h.has(ymd(next))){
+      h.set(key,"国民の休日");
+    }
+  }
+
+  // 振替休日：祝日が日曜なら、その後で最初の非祝日を休日とする。
+  const originals=[...h.entries()];
+  for(const [key] of originals){
+    const d=parseDate(key);
+    if(d.getDay()!==0) continue;
+    const sub=new Date(d);
+    do{
+      sub.setDate(sub.getDate()+1);
+    }while(h.has(ymd(sub)));
+    if(sub.getFullYear()===year) h.set(ymd(sub),"振替休日");
+  }
+
+  JP_HOLIDAY_CACHE.set(year,h);
+  return h;
+}
+function japaneseHolidayName(dateObj){
+  const map=buildJapaneseHolidays(dateObj.getFullYear());
+  return map.get(ymd(dateObj)) || "";
 }
 
 function render(){
@@ -385,7 +981,9 @@ function render(){
     if(d.getMonth()!==current.getMonth()) div.classList.add("other");
     if(key===today) div.classList.add("today");
     if(dow===0) div.classList.add("sun"); if(dow===6) div.classList.add("sat");
-    div.innerHTML=`<div class="num">${d.getDate()}</div>`;
+    const holidayName=japaneseHolidayName(d);
+    if(holidayName) div.classList.add("holiday");
+    div.innerHTML=`<div class="num">${d.getDate()}</div>${holidayName?`<div class="holiday-name" title="${esc(holidayName)}">${esc(holidayName)}</div>`:""}`;
     div.onclick=()=>openNew(key);
     cal.appendChild(div);
   }
@@ -403,31 +1001,68 @@ function setAllDayUI(){
   $("timeFields").classList.toggle("hidden",all);
   if(all){$("startTime").value="";$("endTime").value=""}
 }
+
+function showEventDialogSafe(){
+  $("eventDialog").showModal();
+  requestAnimationFrame(()=>{
+    try{
+      $("eventTitle").focus({preventScroll:true});
+    }catch(_){
+      try{$("eventTitle").focus()}catch(__){}
+    }
+  });
+}
+
 function openNew(date=ymd(new Date())){
   $("eventTitle").textContent="予定を登録"; $("eventId").value="";
-  $("startDate").value=date; $("endDate").value=date;
+  $("startDate").value=date; $("endDate").value=date; $("startDatePicker").value=date; $("endDatePicker").value=date;
   $("member").value=localStorage.getItem("default_member")||"0";
   $("allDay").checked=true; setAllDayUI();
   $("startTime").value=""; $("endTime").value="";
   selectCategory("仕事"); $("title").value=""; $("memo").value="";
-  $("deleteBtn").classList.add("hidden"); updateRangeSummary(); $("eventDialog").showModal();
+  $("deleteBtn").classList.add("hidden"); $("duplicateBtn").classList.add("hidden"); $("endDatePicker").min=date; updateRangeSummary(); showEventDialogSafe();
 }
 function openEdit(e){
   $("eventTitle").textContent="予定を編集"; $("eventId").value=e.id;
-  $("startDate").value=e.event_date; $("endDate").value=e.end_date||e.event_date;
+  $("startDate").value=e.event_date; $("endDate").value=e.end_date||e.event_date; $("startDatePicker").value=e.event_date; $("endDatePicker").value=e.end_date||e.event_date;
   $("member").value=String(e.member_index);
   $("allDay").checked=!!e.all_day; setAllDayUI();
   $("startTime").value=(e.start_time||"").slice(0,5);
   $("endTime").value=(e.end_time||"").slice(0,5);
   selectCategory(e.category||"その他");
   $("title").value=e.title||""; $("memo").value=e.memo||"";
-  $("deleteBtn").classList.remove("hidden"); updateRangeSummary(); $("eventDialog").showModal();
+  $("deleteBtn").classList.remove("hidden"); $("duplicateBtn").classList.remove("hidden"); $("endDatePicker").min=e.event_date; updateRangeSummary(); showEventDialogSafe();
 }
-$("startDate").onchange=()=>{
-  if(!$("endDate").value||$("endDate").value<$("startDate").value)$("endDate").value=$("startDate").value;
+
+$("startDatePicker").onchange=()=>{
+  const v=$("startDatePicker").value;
+  if(!v) return;
+  $("startDate").value=v;
+
+  // 終了日が開始日より前なら自動的に開始日に揃える
+  if(!$("endDate").value || $("endDate").value < v){
+    $("endDate").value=v;
+    $("endDatePicker").value=v;
+  }
+
+  $("endDatePicker").min=v;
   updateRangeSummary();
 };
-$("endDate").onchange=updateRangeSummary;
+
+$("endDatePicker").onchange=()=>{
+  const v=$("endDatePicker").value;
+  if(!v) return;
+
+  if(v < $("startDate").value){
+    alert("終了日は開始日以降を選択してください。");
+    $("endDatePicker").value=$("endDate").value;
+    return;
+  }
+
+  $("endDate").value=v;
+  updateRangeSummary();
+};
+
 $("allDay").onchange=setAllDayUI;
 
 $("eventForm").addEventListener("submit",async e=>{
@@ -451,6 +1086,26 @@ $("eventForm").addEventListener("submit",async e=>{
   if(error){alert("保存に失敗しました: "+error.message);return}
   $("eventDialog").close(); await loadEvents();
 });
+
+$("duplicateBtn").onclick=()=>{
+  // 現在表示中（変更途中を含む）の内容をそのまま新規予定として複製
+  $("eventId").value="";
+  $("eventTitle").textContent="予定を複製";
+
+  // hidden date picker側も表示値と同期
+  $("startDatePicker").value=$("startDate").value;
+  $("endDatePicker").value=$("endDate").value;
+  $("endDatePicker").min=$("startDate").value;
+
+  $("deleteBtn").classList.add("hidden");
+  $("duplicateBtn").classList.add("hidden");
+
+  // 保存するとINSERTになることを明確に表示
+  $("rangeSummary").textContent =
+    ($("rangeSummary").textContent ? $("rangeSummary").textContent + "　" : "") +
+    "この内容を新しい予定として複製します";
+};
+
 $("deleteBtn").onclick=async()=>{
   const id=$("eventId").value;if(!id||!sb)return;
   if(!confirm("この予定を削除しますか？"))return;
@@ -459,10 +1114,30 @@ $("deleteBtn").onclick=async()=>{
   $("eventDialog").close();await loadEvents();
 };
 $("cancelBtn").onclick=()=>$("eventDialog").close();
+$("dayEventsClose").onclick=()=>$("dayEventsDialog").close();
 $("prevBtn").onclick=()=>{current.setMonth(current.getMonth()-1);loadEvents()};
 $("nextBtn").onclick=()=>{current.setMonth(current.getMonth()+1);loadEvents()};
 $("todayBtn").onclick=()=>{current=new Date();current.setDate(1);loadEvents()};
 $("addBtn").onclick=()=>openNew();
+
+if($("familyShareBtn")) $("familyShareBtn").onclick=async()=>{
+  try{
+    // Save current visible settings first so the QR uses the latest values.
+    members=[0,1,2,3].map(i=>$("name"+i).value.trim()||DEFAULT_NAMES[i]);
+    localStorage.setItem("family_names",JSON.stringify(members));
+    localStorage.setItem("supabase_url",$("supabaseUrl").value.trim());
+    localStorage.setItem("supabase_key",$("supabaseKey").value.trim());
+    rebuild();
+
+    await renderFamilyShareQrs();
+    $("familyShareDialog").showModal();
+  }catch(err){
+    console.error(err);
+    alert(err.message||String(err));
+  }
+};
+if($("familyShareClose")) $("familyShareClose").onclick=()=>$("familyShareDialog").close();
+
 $("settingsBtn").onclick=()=>{loadSettingsUI();$("settingsDialog").showModal()};
 $("settingsCancel").onclick=()=>$("settingsDialog").close();
 $("settingsSave").onclick=async()=>{
@@ -475,22 +1150,648 @@ $("settingsSave").onclick=async()=>{
 };
 
 
-const SOURCE_BUCKET='family-schedule-sources';\nlet currentSourceType='monthly';\nfunction monthRange(){const y=current.getFullYear(),m=current.getMonth();const a=new Date(y,m,1),b=new Date(y,m+1,0);return{start:ymd(a),end:ymd(b)}}\nfunction extOf(file){const n=(file&&file.name)||'';const m=n.match(/\\.([a-zA-Z0-9]+)$/);return m?m[1].toLowerCase():(file&&file.type==='image/png'?'png':'jpg')}\nasync function uploadSourceFile(file,type,periodStart,periodEnd){\n  if(!sb)throw new Error('Supabaseに接続されていません。');\n  const ext=extOf(file),safeType=type==='monthly'?'monthly':'weekly';\n  const path=`maki/${safeType}/${periodStart}_${Date.now()}_${Math.random().toString(36).slice(2,8)}.${ext}`;\n  const {error:upErr}=await sb.storage.from(SOURCE_BUCKET).upload(path,file,{contentType:file.type||'image/jpeg',upsert:false});\n  if(upErr)throw upErr;\n  const {error:dbErr}=await sb.from('schedule_sources').insert({source_type:safeType,member_index:MAKI_INDEX,period_start:periodStart,period_end:periodEnd,file_path:path,file_name:file.name||`${safeType}.${ext}`});\n  if(dbErr){await sb.storage.from(SOURCE_BUCKET).remove([path]);throw dbErr}\n  return path;\n}\nasync function openSourceImage(path){\n  const {data,error}=await sb.storage.from(SOURCE_BUCKET).createSignedUrl(path,300);\n  if(error)throw error;\n  window.open(data.signedUrl,'_blank','noopener');\n}\nasync function loadSourceList(type){\n  currentSourceType=type;\n  const range=monthRange();\n  $('sourceDialogTitle').textContent=type==='monthly'?'📅 月間元予定':'📄 週間元予定';\n  $('sourceDialogNote').textContent=type==='monthly'?'表示中の月の月間予定表写真を保存・参照できます。':'表示中の月に関係する週間予定表の原本写真です。予定表取込時に自動保存されます。';\n  $('monthlyUploadArea').classList.toggle('hidden',type!=='monthly');\n  $('sourceStatus').textContent='元予定表を読み込んでいます…'; $('sourceList').innerHTML='';\n  let q=sb.from('schedule_sources').select('*').eq('member_index',MAKI_INDEX).eq('source_type',type).lte('period_start',range.end).gte('period_end',range.start).order('created_at',{ascending:false});\n  const {data,error}=await q;if(error)throw error;\n  const rows=data||[];$('sourceStatus').textContent=rows.length?`${rows.length}件あります。`:'この月の元予定表はまだありません。';\n  for(const r of rows){const c=document.createElement('div');c.className='source-card';const label=r.source_type==='monthly'?'月間予定表':'週間予定表';c.innerHTML=`<div class="source-card-head"><strong>${esc(label)}</strong><button class="btn primary source-open" type="button">開く</button></div><div class="source-meta">${esc(r.period_start)} ～ ${esc(r.period_end)}<br>${esc(r.file_name||'')}</div>`;c.querySelector('.source-open').onclick=async()=>{try{await openSourceImage(r.file_path)}catch(e){alert('元画像を開けません: '+(e.message||e))}};$('sourceList').appendChild(c)}\n}\nasync function showSourceDialog(type){\n  if(!sb){alert('先にSupabaseへ接続してください。');return}\n  $('sourceDialog').showModal();\n  try{await loadSourceList(type)}catch(e){console.error(e);$('sourceStatus').textContent='読み込みに失敗しました。v2.3-source-migration.sqlを実行してください。'}\n}\n$('monthlySourceBtn').onclick=()=>showSourceDialog('monthly');\n$('weeklySourceBtn').onclick=()=>showSourceDialog('weekly');\n$('sourceCloseBtn').onclick=()=>$('sourceDialog').close();\n$('monthlySourceUploadBtn').onclick=async()=>{const f=$('monthlySourceFile').files&&$('monthlySourceFile').files[0];if(!f){alert('月間予定表の写真を選択してください。');return}const r=monthRange();$('monthlySourceUploadBtn').disabled=true;$('sourceStatus').textContent='月間予定表を保存しています…';try{await uploadSourceFile(f,'monthly',r.start,r.end);$('monthlySourceFile').value='';await loadSourceList('monthly');alert('月間予定表の元画像を保存しました。')}catch(e){console.error(e);alert('保存に失敗しました: '+(e.message||e))}finally{$('monthlySourceUploadBtn').disabled=false}};\n\nlet importImageFile=null,parsedImportBlocks=[]; const MAKI_INDEX=3;
-function normalizeOCRText(s){const fw='０１２３４５６７８９';s=String(s||'').replace(/[０-９]/g,c=>String(fw.indexOf(c)));return s.replace(/：/g,':').replace(/＠/g,'@').replace(/～/g,'〜').replace(/[\u00A0\t]+/g,' ').replace(/ +/g,' ')}
-function isoDate(y,m,d){return `${y}-${pad(m)}-${pad(d)}`}
-function extractSections(text){const lines=text.split(/\n+/).map(x=>x.trim()).filter(Boolean);let belongings=[],notes=[],mode='schedule';for(const line of lines){if(/^持ち物/.test(line)){mode='belongings';const r=line.replace(/^持ち物[:：]?\s*/,'');if(r)belongings.push(r);continue}if(/^備考/.test(line)){mode='notes';const r=line.replace(/^備考[:：]?\s*/,'');if(r)notes.push(r);continue}if(mode==='belongings')belongings.push(line);else if(mode==='notes')notes.push(line.replace(/^[・•●]\s*/,''))}return{belongings:belongings.join('、').replace(/、+/g,'、'),notes:notes.join('\n')}}
-function parseThunderbirdsOCR(raw){const text=normalizeOCRText(raw),dateRe=/(\d{1,2})月\s*(\d{1,2})日[^\n]*?(?:[〜~～\-]\s*(\d{1,2})日)?[^\n]*/g;let hits=[],m;while((m=dateRe.exec(text))!==null)hits.push({index:m.index,header:m[0],month:+m[1],day:+m[2],endDay:m[3]?+m[3]:+m[2]});const year=current.getFullYear(),blocks=[];for(let i=0;i<hits.length;i++){const h=hits[i],body=text.slice(h.index+h.header.length,i+1<hits.length?hits[i+1].index:text.length).trim(),header=h.header;let location='';const at=header.match(/@\s*([^\n]+)/);if(at)location=at[1].replace(/[|｜].*$/,'').trim();if(!location){const lm=(header+'\n'+body).match(/(?:@\s*)?([^\n、,]*?(?:中学校|中学|球場|グラウンド|体育館))/);if(lm)location=lm[1].trim()}const tl=[],tre=/(\d{1,2})\s*[:.]\s*(\d{2})\s*([^\n]*)/g;let tm;while((tm=tre.exec(body))!==null){const hh=String(Math.min(23,+tm[1])).padStart(2,'0'),mm=String(Math.min(59,+tm[2])).padStart(2,'0');tl.push({time:`${hh}:${mm}`,text:(tm[3]||'').trim()})}const sec=extractSections(body);blocks.push({start:isoDate(year,h.month,h.day),end:isoDate(year,h.month,h.endDay),location,startTime:tl.length?tl[0].time:'',endTime:tl.length?tl[tl.length-1].time:'',schedule:tl.map(x=>`${x.time} ${x.text}`.trim()).join('\n'),belongings:sec.belongings,notes:sec.notes,matches:[],enabled:true})}return blocks}
-async function matchImportBlocks(blocks){if(!sb)throw new Error('Supabaseに接続されていません。');for(const b of blocks){const {data,error}=await sb.from('family_events').select('*').eq('member_index',MAKI_INDEX).gte('event_date',b.start).lte('event_date',b.end).order('event_date');if(error)throw error;b.matches=(data||[]).filter(e=>String(e.memo||'').includes('サンダーバーズユース'))}return blocks}
-function renderImportReview(){const list=$('reviewList');list.innerHTML='';parsedImportBlocks.forEach((b,i)=>{const card=document.createElement('div');card.className='review-card';const mt=b.matches.length?`${b.matches.length}件一致：${b.matches.map(x=>`${x.event_date} ${x.title}`).join(' / ')}`:'一致する既存予定なし';card.innerHTML=`<div class="review-head"><strong>${esc(b.start)}${b.end!==b.start?' ～ '+esc(b.end):''}</strong><label style="display:flex;gap:5px;align-items:center"><input style="width:auto" type="checkbox" class="imp-enabled" data-i="${i}" ${b.matches.length?'checked':''}>反映</label></div><div class="${b.matches.length?'match-ok':'match-ng'}">${esc(mt)}</div><div class="review-grid" style="margin-top:8px"><div class="field"><label>開始時間</label><input class="imp-start" data-i="${i}" type="time" value="${esc(b.startTime)}"></div><div class="field"><label>終了時間</label><input class="imp-end" data-i="${i}" type="time" value="${esc(b.endTime)}"></div></div><div class="field"><label>場所</label><input class="imp-location" data-i="${i}" value="${esc(b.location)}"></div><div class="field"><label>当日の予定</label><textarea class="imp-schedule" data-i="${i}">${esc(b.schedule)}</textarea></div><div class="field"><label>持ち物</label><textarea class="imp-belongings" data-i="${i}">${esc(b.belongings)}</textarea></div><div class="field"><label>備考</label><textarea class="imp-notes" data-i="${i}">${esc(b.notes)}</textarea></div>`;list.appendChild(card)})}
-function collectReviewEdits(){document.querySelectorAll('.imp-enabled').forEach(el=>parsedImportBlocks[+el.dataset.i].enabled=el.checked);document.querySelectorAll('.imp-start').forEach(el=>parsedImportBlocks[+el.dataset.i].startTime=el.value);document.querySelectorAll('.imp-end').forEach(el=>parsedImportBlocks[+el.dataset.i].endTime=el.value);document.querySelectorAll('.imp-location').forEach(el=>parsedImportBlocks[+el.dataset.i].location=el.value.trim());document.querySelectorAll('.imp-schedule').forEach(el=>parsedImportBlocks[+el.dataset.i].schedule=el.value.trim());document.querySelectorAll('.imp-belongings').forEach(el=>parsedImportBlocks[+el.dataset.i].belongings=el.value.trim());document.querySelectorAll('.imp-notes').forEach(el=>parsedImportBlocks[+el.dataset.i].notes=el.value.trim())}
-function buildImportedMemo(existing,b){let base=String(existing||'').split('【週予定詳細】')[0].trim(),parts=[];if(b.location)parts.push(`場所：${b.location}`);if(b.schedule)parts.push(`【当日の予定】\n${b.schedule}`);if(b.belongings)parts.push(`【持ち物】\n${b.belongings}`);if(b.notes)parts.push(`【備考】\n${b.notes}`);return `${base}${base?'\n\n':''}【週予定詳細】\n${parts.join('\n\n')}`.trim()}
-async function applyImport(){collectReviewEdits();const targets=parsedImportBlocks.filter(b=>b.enabled&&b.matches.length);if(!targets.length){alert('反映できる予定がありません。');return}$('applyImportBtn').disabled=true;$('importStatus').textContent='予定へ反映しています…';try{let count=0;for(const b of targets){for(const e of b.matches){const payload={memo:buildImportedMemo(e.memo,b)};if(b.startTime||b.endTime){payload.all_day=false;payload.start_time=b.startTime||null;payload.end_time=b.endTime||null}const {error}=await sb.from('family_events').update(payload).eq('id',e.id);if(error)throw error;count++}}if(importImageFile&&targets.length){const ps=targets.map(x=>x.start).sort()[0],pe=targets.map(x=>x.end).sort().slice(-1)[0];await uploadSourceFile(importImageFile,'weekly',ps,pe)}$('importStatus').textContent=`${count}件の昌輝の予定へ反映し、週間予定表の元画像も保存しました。`;await loadEvents();alert(`${count}件の予定に時間・場所・持ち物・備考を反映し、元画像も保存しました。`)}catch(err){console.error(err);alert('反映に失敗しました: '+(err.message||err))}finally{$('applyImportBtn').disabled=false}}
-$('importBtn').onclick=()=>{$('importFile').value='';$('importPreview').classList.add('hidden');$('ocrArea').classList.add('hidden');$('reviewArea').classList.add('hidden');$('importStatus').textContent='写真を選択してください。';$('importProgress').style.width='0%';importImageFile=null;parsedImportBlocks=[];$('importDialog').showModal()};$('importClose').onclick=()=>$('importDialog').close();$('importFile').onchange=e=>{importImageFile=e.target.files&&e.target.files[0];if(!importImageFile)return;const url=URL.createObjectURL(importImageFile);$('importPreview').src=url;$('importPreview').classList.remove('hidden');$('importStatus').textContent='写真を選択しました。「写真を解析」を押してください。'};$('ocrBtn').onclick=async()=>{if(!importImageFile){alert('予定表の写真を選択してください。');return}if(!window.Tesseract){alert('OCRライブラリを読み込めませんでした。インターネット接続を確認してください。');return}$('ocrBtn').disabled=true;$('importStatus').textContent='日本語OCRを実行しています。初回は少し時間がかかります…';try{const result=await Tesseract.recognize(importImageFile,'jpn',{logger:m=>{if(typeof m.progress==='number')$('importProgress').style.width=Math.round(m.progress*100)+'%';if(m.status)$('importStatus').textContent=`解析中：${m.status}`}});$('ocrText').value=normalizeOCRText(result.data.text||'');$('ocrArea').classList.remove('hidden');$('importStatus').textContent='OCRが完了しました。文字を確認して「予定を照合」を押してください。'}catch(err){console.error(err);alert('画像解析に失敗しました。写真を撮り直すか、OCR結果を手入力してください。');$('ocrArea').classList.remove('hidden')}finally{$('ocrBtn').disabled=false}};$('parseBtn').onclick=async()=>{try{parsedImportBlocks=parseThunderbirdsOCR($('ocrText').value);if(!parsedImportBlocks.length){alert('日付を読み取れませんでした。OCR結果の日付表記を確認してください。');return}$('importStatus').textContent=`${parsedImportBlocks.length}個の日付ブロックを検出。既存予定と照合しています…`;await matchImportBlocks(parsedImportBlocks);renderImportReview();$('reviewArea').classList.remove('hidden');const matched=parsedImportBlocks.reduce((n,b)=>n+b.matches.length,0);$('importStatus').textContent=`照合完了：既存の昌輝の予定 ${matched}件が候補です。内容を確認して反映してください。`}catch(err){console.error(err);alert('予定照合に失敗しました: '+(err.message||err))}};$('applyImportBtn').onclick=applyImport;
+const SOURCE_BUCKET='family-schedule-sources';
+let currentSourceType='monthly';
+function monthRange(){const y=current.getFullYear(),m=current.getMonth();const a=new Date(y,m,1),b=new Date(y,m+1,0);return{start:ymd(a),end:ymd(b)}}
+function extOf(file){const n=(file&&file.name)||'';const m=n.match(/\\.([a-zA-Z0-9]+)$/);return m?m[1].toLowerCase():(file&&file.type==='image/png'?'png':'jpg')}
+async function uploadSourceFile(file,type,periodStart,periodEnd){
+  if(!sb)throw new Error('Supabaseに接続されていません。');
+  const ext=extOf(file),safeType=type==='monthly'?'monthly':'weekly';
+  const path=`maki/${safeType}/${periodStart}_${Date.now()}_${Math.random().toString(36).slice(2,8)}.${ext}`;
+  const {error:upErr}=await sb.storage.from(SOURCE_BUCKET).upload(path,file,{contentType:file.type||'application/octet-stream',upsert:false});
+  if(upErr)throw upErr;
+  const {error:dbErr}=await sb.from('schedule_sources').insert({source_type:safeType,member_index:MAKI_INDEX,period_start:periodStart,period_end:periodEnd,file_path:path,file_name:file.name||`${safeType}.${ext}`});
+  if(dbErr){await sb.storage.from(SOURCE_BUCKET).remove([path]);throw dbErr}
+  return path;
+}
+async function openSourceImage(path){
+  const {data,error}=await sb.storage.from(SOURCE_BUCKET).createSignedUrl(path,300);
+  if(error)throw error;
+  window.open(data.signedUrl,'_blank','noopener');
+}
+async function loadSourceList(type){
+  currentSourceType=type;
+  const range=monthRange();
+  $('sourceDialogTitle').textContent=type==='monthly'?'📅 月間元予定':'📄 週間元予定';
+  $('sourceDialogNote').textContent=type==='monthly'
+    ?'表示中の月の月間予定表ファイルを保存・参照できます。'
+    :'写真取込時に保存した元の週間予定表写真です。写真をそのまま確認できます。';
+  $('monthlyUploadArea').classList.toggle('hidden',type!=='monthly');
+  $('sourceStatus').textContent='元予定表を読み込んでいます…';
+  $('sourceList').innerHTML='';
+  let q=sb.from('schedule_sources').select('*')
+    .eq('member_index',MAKI_INDEX).eq('source_type',type)
+    .lte('period_start',range.end).gte('period_end',range.start)
+    .order('created_at',{ascending:false});
+  const {data,error}=await q;
+  if(error)throw error;
+  let rows=data||[];
+  if(type==='weekly'){
+    rows=rows.filter(r=>/\.(jpe?g|png|heic|webp)$/i.test(r.file_name||r.file_path||''));
+  }
+  $('sourceStatus').textContent=rows.length?`${rows.length}件あります。`:'この月の元予定表はまだありません。';
+
+  for(const r of rows){
+    const c=document.createElement('div');
+    c.className='source-card';
+    const label=r.source_type==='monthly'?'月間予定表':'週間予定表';
+    c.innerHTML=`<div class="source-card-head"><strong>${esc(label)}</strong><button class="btn primary source-open" type="button">大きく開く</button></div>
+      <div class="source-meta">${esc(r.period_start)} ～ ${esc(r.period_end)}<br>${esc(r.file_name||'')}</div>
+      <div class="source-inline-preview"></div>`;
+    try{
+      const {data:signed,error:signedErr}=await sb.storage.from(SOURCE_BUCKET).createSignedUrl(r.file_path,300);
+      if(signedErr)throw signedErr;
+      if(/\.(jpe?g|png|heic|webp)$/i.test(r.file_name||r.file_path||'')){
+        c.querySelector('.source-inline-preview').innerHTML=`<img class="source-preview" src="${signed.signedUrl}" alt="元予定表">`;
+      }
+      c.querySelector('.source-open').onclick=()=>window.open(signed.signedUrl,'_blank','noopener');
+    }catch(e){
+      c.querySelector('.source-inline-preview').textContent='プレビューを表示できません。';
+      c.querySelector('.source-open').onclick=async()=>{try{await openSourceImage(r.file_path)}catch(err){alert('元ファイルを開けません: '+(err.message||err))}};
+    }
+    $('sourceList').appendChild(c);
+  }
+}
+async function showSourceDialog(type){
+  if(!sb){alert('先にSupabaseへ接続してください。');return}
+  $('sourceDialog').showModal();
+  try{await loadSourceList(type)}catch(e){console.error(e);$('sourceStatus').textContent='読み込みに失敗しました。v2.3-source-migration.sqlを実行してください。'}
+}
+$('monthlySourceBtn').onclick=()=>showSourceDialog('monthly');
+$('weeklySourceBtn').onclick=()=>showSourceDialog('weekly');
+$('sourceCloseBtn').onclick=()=>$('sourceDialog').close();
+$('monthlySourceUploadBtn').onclick=async()=>{const f=$('monthlySourceFile').files&&$('monthlySourceFile').files[0];if(!f){alert('月間予定表のファイルを選択してください。');return}const r=monthRange();$('monthlySourceUploadBtn').disabled=true;$('sourceStatus').textContent='月間予定表を保存しています…';try{await uploadSourceFile(f,'monthly',r.start,r.end);$('monthlySourceFile').value='';await loadSourceList('monthly');alert('月間予定表の元ファイルを保存しました。')}catch(e){console.error(e);alert('保存に失敗しました: '+(e.message||e))}finally{$('monthlySourceUploadBtn').disabled=false}};
+
+
+const PHOTO_MAKI_INDEX=3;
+let photoSourceFile=null;
+let photoParsedBlocks=[];
+let photoGeneratedExcelFile=null;
+let photoSourceUploaded=false;
+
+function normalizePhotoOCRText(s){
+  const fw='０１２３４５６７８９';
+  s=String(s||'').replace(/[０-９]/g,c=>String(fw.indexOf(c)));
+  return s.replace(/：/g,':').replace(/＠/g,'@').replace(/[～~]/g,'〜')
+    .replace(/[\u00A0\t]+/g,' ').replace(/[ ]{2,}/g,' ').trim();
+}
+function isoPhotoDate(y,m,d){return `${y}-${pad(m)}-${pad(d)}`}
+
+function photoSection(text,label,nextLabels){
+  const escLabel=label.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+  const next=nextLabels.map(x=>x.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')).join('|');
+  const re=new RegExp(escLabel+'\\s*[:：]?\\s*([\\s\\S]*?)(?=\\n\\s*(?:'+next+')\\s*[:：]?|$)','i');
+  const m=String(text||'').match(re);
+  return m?m[1].trim():'';
+}
+function detectTitleFromBlock(text){
+  const candidates=['3年生引退試合','引退試合','練習試合','地区新人大会','県大会','サンダーバーズカップ','練習','休み'];
+  return candidates.find(x=>String(text||'').includes(x))||'サンダーバーズユース';
+}
+function detectLocationFromBlock(text){
+  const s=String(text||'');
+  const m=s.match(/([^\n、。|｜]{0,18}(?:中学校|中学|球場|グラウンド|体育館|学校))/);
+  return m?m[1].replace(/^[^\p{L}\p{N}]+/u,'').trim():'';
+}
+function extractPhotoTimes(text){
+  const out=[];
+  const re=/(\d{1,2})\s*[:.]\s*(\d{2})\s*([^\n]*)/g;
+  let m;
+  while((m=re.exec(String(text||'')))!==null){
+    const hh=String(Math.min(23,+m[1])).padStart(2,'0');
+    const mm=String(Math.min(59,+m[2])).padStart(2,'0');
+    out.push({time:`${hh}:${mm}`,text:(m[3]||'').trim()});
+  }
+  return out;
+}
+function parseThunderbirdsPhotoOCR(raw){
+  const text=normalizePhotoOCRText(raw);
+  const year=current.getFullYear();
+  const dateRe=/(\d{1,2})月\s*(\d{1,2})日[^\n]*?(?:[〜\-]\s*(?:(\d{1,2})月\s*)?(\d{1,2})日)?[^\n]*/g;
+  let hits=[],m;
+  while((m=dateRe.exec(text))!==null){
+    hits.push({
+      index:m.index,header:m[0],
+      month:+m[1],day:+m[2],
+      endMonth:m[3]?+m[3]:+m[1],
+      endDay:m[4]?+m[4]:+m[2]
+    });
+  }
+  const blocks=[];
+  for(let i=0;i<hits.length;i++){
+    const h=hits[i];
+    const body=text.slice(h.index+h.header.length,i+1<hits.length?hits[i+1].index:text.length).trim();
+    const combined=(h.header+'\n'+body).trim();
+    const times=extractPhotoTimes(body);
+    const belongings=photoSection(combined,'持ち物',['備考','連絡','その他']);
+    let notes=photoSection(combined,'備考',['持ち物','連絡','その他']);
+    if(!notes){
+      const noteLines=combined.split(/\n+/).filter(x=>/雨|水分|ユニフォーム|連絡|暑/.test(x));
+      notes=noteLines.join('\n');
+    }
+    blocks.push({
+      start:isoPhotoDate(year,h.month,h.day),
+      end:isoPhotoDate(year,h.endMonth,h.endDay),
+      title:detectTitleFromBlock(combined),
+      location:detectLocationFromBlock(combined),
+      startTime:times[0]?.time||'',
+      endTime:times.length?times[times.length-1].time:'',
+      schedule:times.map(x=>`${x.time} ${x.text}`.trim()).join('\n'),
+      belongings:belongings,
+      notes:notes,
+      matches:[],enabled:true
+    });
+  }
+  return blocks;
+}
+function expandPhotoBlocksForExcel(blocks){
+  const rows=[];
+  for(const b of blocks){
+    const sd=parseDate(b.start),ed=parseDate(b.end);
+    for(let d=new Date(sd); d<=ed; d.setDate(d.getDate()+1)){
+      rows.push({
+        '日付':ymd(d),
+        '曜日':['日','月','火','水','木','金','土'][d.getDay()],
+        '予定':b.title||'',
+        '場所':b.location||'',
+        '時間・内容':b.schedule||'',
+        '持ち物':b.belongings||'',
+        '備考':b.notes||''
+      });
+    }
+  }
+  return rows;
+}
+function makePhotoExcelFile(blocks){
+  const rows=expandPhotoBlocksForExcel(blocks);
+  const ws=XLSX.utils.json_to_sheet(rows,{header:['日付','曜日','予定','場所','時間・内容','持ち物','備考']});
+  ws['!cols']=[{wch:12},{wch:6},{wch:22},{wch:18},{wch:42},{wch:38},{wch:48}];
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,'予定表');
+  const arr=XLSX.write(wb,{bookType:'xlsx',type:'array'});
+  const start=blocks.map(x=>x.start).sort()[0]||ymd(new Date());
+  const end=blocks.map(x=>x.end).sort().slice(-1)[0]||start;
+  return new File([arr],`サンダーバーズユース_週間予定_${start}_${end}.xlsx`,{
+    type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+  });
+}
+async function matchPhotoBlocks(blocks){
+  for(const b of blocks){
+    const {data,error}=await sb.from('family_events').select('*')
+      .eq('member_index',PHOTO_MAKI_INDEX)
+      .gte('event_date',b.start).lte('event_date',b.end)
+      .order('event_date');
+    if(error)throw error;
+    let candidates=(data||[]).filter(e=>String(e.memo||'').includes('サンダーバーズユース'));
+    if(candidates.length>1&&b.title){
+      const nt=normTitle(b.title);
+      const narrowed=candidates.filter(e=>{
+        const et=normTitle(e.title);
+        return et===nt||et.includes(nt)||nt.includes(et);
+      });
+      if(narrowed.length)candidates=narrowed;
+    }
+    b.matches=candidates;
+  }
+}
+function renderPhotoReview(){
+  const list=$('photoReviewList');
+  list.innerHTML='';
+  photoParsedBlocks.forEach((b,i)=>{
+    const card=document.createElement('div');
+    card.className='review-card';
+    const mt=b.matches.length
+      ?`${b.matches.length}件一致：${b.matches.map(x=>`${x.event_date} ${x.title}`).join(' / ')}`
+      :'一致する既存予定なし';
+    card.innerHTML=`<div class="review-head">
+      <strong>${esc(b.start)}${b.end!==b.start?' ～ '+esc(b.end):''}　${esc(b.title||'')}</strong>
+      <label style="display:flex;gap:5px;align-items:center"><input style="width:auto" type="checkbox" class="p-enabled" data-i="${i}" ${b.matches.length?'checked':''}>反映</label>
+      </div>
+      <div class="${b.matches.length?'match-ok':'match-ng'}">${esc(mt)}</div>
+      <div class="review-grid" style="margin-top:8px">
+        <div class="field"><label>開始時間</label><input class="p-start" data-i="${i}" type="time" value="${esc(b.startTime)}"></div>
+        <div class="field"><label>終了時間</label><input class="p-end" data-i="${i}" type="time" value="${esc(b.endTime)}"></div>
+      </div>
+      <div class="field"><label>予定</label><input class="p-title" data-i="${i}" value="${esc(b.title)}"></div>
+      <div class="field"><label>場所</label><input class="p-location" data-i="${i}" value="${esc(b.location)}"></div>
+      <div class="field"><label>当日の予定</label><textarea class="p-schedule" data-i="${i}">${esc(b.schedule)}</textarea></div>
+      <div class="field"><label>持ち物</label><textarea class="p-belongings" data-i="${i}">${esc(b.belongings)}</textarea></div>
+      <div class="field"><label>備考</label><textarea class="p-notes" data-i="${i}">${esc(b.notes)}</textarea></div>`;
+    list.appendChild(card);
+  });
+}
+function collectPhotoEdits(){
+  document.querySelectorAll('.p-enabled').forEach(el=>photoParsedBlocks[+el.dataset.i].enabled=el.checked);
+  document.querySelectorAll('.p-start').forEach(el=>photoParsedBlocks[+el.dataset.i].startTime=el.value);
+  document.querySelectorAll('.p-end').forEach(el=>photoParsedBlocks[+el.dataset.i].endTime=el.value);
+  document.querySelectorAll('.p-title').forEach(el=>photoParsedBlocks[+el.dataset.i].title=el.value.trim());
+  document.querySelectorAll('.p-location').forEach(el=>photoParsedBlocks[+el.dataset.i].location=el.value.trim());
+  document.querySelectorAll('.p-schedule').forEach(el=>photoParsedBlocks[+el.dataset.i].schedule=el.value.trim());
+  document.querySelectorAll('.p-belongings').forEach(el=>photoParsedBlocks[+el.dataset.i].belongings=el.value.trim());
+  document.querySelectorAll('.p-notes').forEach(el=>photoParsedBlocks[+el.dataset.i].notes=el.value.trim());
+}
+async function uploadPhotoSourceIfNeeded(){
+  if(photoSourceUploaded||!photoSourceFile||!photoParsedBlocks.length)return;
+  const ps=photoParsedBlocks.map(x=>x.start).sort()[0];
+  const pe=photoParsedBlocks.map(x=>x.end).sort().slice(-1)[0];
+  await uploadSourceFile(photoSourceFile,'weekly',ps,pe);
+  photoSourceUploaded=true;
+}
+async function applyPhotoImport(){
+  collectPhotoEdits();
+  const targets=photoParsedBlocks.filter(b=>b.enabled&&b.matches.length);
+  if(!targets.length){alert('反映できる予定がありません。');return}
+  $('photoApplyBtn').disabled=true;
+  $('photoImportStatus').textContent='カレンダーへ反映し、Excelを保存しています…';
+  try{
+    let count=0;
+    for(const b of targets){
+      for(const e of b.matches){
+        const payload={memo:buildImportedMemo(e.memo,b)};
+        if(b.startTime||b.endTime){
+          payload.all_day=false;
+          payload.start_time=b.startTime||null;
+          payload.end_time=b.endTime||null;
+        }
+        const {error}=await sb.from('family_events').update(payload).eq('id',e.id);
+        if(error)throw error;
+        count++;
+      }
+    }
+    photoGeneratedExcelFile=makePhotoExcelFile(photoParsedBlocks);
+    const ps=photoParsedBlocks.map(x=>x.start).sort()[0];
+    const pe=photoParsedBlocks.map(x=>x.end).sort().slice(-1)[0];
+    await uploadSourceFile(photoGeneratedExcelFile,'weekly',ps,pe);
+    await uploadPhotoSourceIfNeeded();
+    await loadEvents();
+    $('photoImportStatus').textContent=`${count}件へ反映しました。元写真と自動生成Excelを保存済みです。`;
+    alert(`${count}件の予定へ反映しました。元写真は「週間元予定」から確認できます。`);
+  }catch(err){
+    console.error(err);
+    alert('反映に失敗しました: '+(err.message||err));
+  }finally{
+    $('photoApplyBtn').disabled=false;
+  }
+}
+async function imageFileToDataUrl(file){
+  return await new Promise((resolve,reject)=>{
+    const img=new Image();
+    const u=URL.createObjectURL(file);
+    img.onload=()=>{
+      try{
+        // 文字を読みやすく保ちつつ、API送信用サイズを抑える。
+        const maxSide=2400;
+        const scale=Math.min(1,maxSide/Math.max(img.width,img.height));
+        const canvas=document.createElement('canvas');
+        canvas.width=Math.max(1,Math.round(img.width*scale));
+        canvas.height=Math.max(1,Math.round(img.height*scale));
+        const ctx=canvas.getContext('2d');
+        ctx.drawImage(img,0,0,canvas.width,canvas.height);
+        URL.revokeObjectURL(u);
+        resolve(canvas.toDataURL('image/jpeg',0.92));
+      }catch(e){URL.revokeObjectURL(u);reject(e)}
+    };
+    img.onerror=()=>{URL.revokeObjectURL(u);reject(new Error('画像を開けません。'))};
+    img.src=u;
+  });
+}
+
+function blocksFromAI(data){
+  const rows=Array.isArray(data?.blocks)?data.blocks:[];
+  return rows.map(b=>({
+    start:String(b.start_date||''),
+    end:String(b.end_date||b.start_date||''),
+    title:String(b.title||''),
+    location:String(b.location||''),
+    startTime:String(b.start_time||''),
+    endTime:String(b.end_time||''),
+    schedule:String(b.schedule||''),
+    belongings:String(b.belongings||''),
+    notes:String(b.notes||''),
+    matches:[],enabled:true
+  })).filter(b=>/^\d{4}-\d{2}-\d{2}$/.test(b.start)&&/^\d{4}-\d{2}-\d{2}$/.test(b.end));
+}
+
+$('photoImportBtn').onclick=()=>{
+  $('photoImportFile').value='';
+  $('photoImportPreview').classList.add('hidden');
+  $('photoReviewArea').classList.add('hidden');
+  $('photoImportStatus').textContent='週間予定表の写真を選択してください。';
+  $('photoImportProgress').style.width='0%';
+  photoSourceFile=null;photoParsedBlocks=[];photoGeneratedExcelFile=null;photoSourceUploaded=false;
+  $('photoImportDialog').showModal();
+};
+$('photoImportClose').onclick=()=>$('photoImportDialog').close();
+$('photoImportFile').onchange=e=>{
+  photoSourceFile=e.target.files&&e.target.files[0];
+  if(!photoSourceFile)return;
+  const url=URL.createObjectURL(photoSourceFile);
+  $('photoImportPreview').src=url;
+  $('photoImportPreview').classList.remove('hidden');
+  $('photoImportStatus').textContent='写真を選択しました。「AIで写真を解析」を押してください。';
+};
+$('photoOcrBtn').onclick=async()=>{
+  if(!photoSourceFile){alert('週間予定表の写真を選択してください。');return}
+  if(!sb){alert('Supabaseへ接続されていません。設定を確認してください。');return}
+  $('photoOcrBtn').disabled=true;
+  $('photoReviewArea').classList.add('hidden');
+  $('photoImportProgress').style.width='20%';
+  $('photoImportStatus').textContent='AI画像解析用に写真を準備しています…';
+  try{
+    const imageDataUrl=await imageFileToDataUrl(photoSourceFile);
+    $('photoImportProgress').style.width='40%';
+    $('photoImportStatus').textContent='AIが予定表を解析しています…';
+    const {data,error}=await sb.functions.invoke('analyze-schedule',{
+      body:{
+        image_data_url:imageDataUrl,
+        current_year:current.getFullYear(),
+        member_name:members[PHOTO_MAKI_INDEX]||'昌輝'
+      }
+    });
+    if(error)throw error;
+    if(!data?.ok)throw new Error(data?.error||'AI解析結果を取得できませんでした。');
+    photoParsedBlocks=blocksFromAI(data);
+    if(!photoParsedBlocks.length)throw new Error('予定の日付を認識できませんでした。');
+    $('photoImportProgress').style.width='70%';
+    $('photoImportStatus').textContent=`AI解析完了：${photoParsedBlocks.length}ブロック。既存予定と照合しています…`;
+    await matchPhotoBlocks(photoParsedBlocks);
+    renderPhotoReview();
+    $('photoReviewArea').classList.remove('hidden');
+    collectPhotoEdits();
+    photoGeneratedExcelFile=makePhotoExcelFile(photoParsedBlocks);
+    await uploadPhotoSourceIfNeeded();
+    const matched=photoParsedBlocks.reduce((n,b)=>n+b.matches.length,0);
+    $('photoImportProgress').style.width='100%';
+    $('photoImportStatus').textContent=`AI解析・Excel変換完了：${photoParsedBlocks.length}ブロック / 既存予定一致 ${matched}件。内容を確認して反映してください。元写真は保存済みです。`;
+  }catch(err){
+    console.error(err);
+    $('photoImportProgress').style.width='0%';
+    $('photoImportStatus').textContent='AI解析に失敗しました。';
+    alert('AI画像解析に失敗しました: '+(err.message||err));
+  }finally{
+    $('photoOcrBtn').disabled=false;
+  }
+};
+$('photoExcelDownloadBtn').onclick=()=>{
+  collectPhotoEdits();
+  const f=makePhotoExcelFile(photoParsedBlocks);
+  const url=URL.createObjectURL(f);
+  const a=document.createElement('a');
+  a.href=url;a.download=f.name;document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
+};
+$('photoApplyBtn').onclick=applyPhotoImport;
+
+
+let importSourceFile=null,parsedImportBlocks=[]; const MAKI_INDEX=3;
+function cleanCell(v){return String(v??'').replace(/\r\n/g,'\n').replace(/\r/g,'\n').trim()}
+function excelDateToISO(v){
+  if(v instanceof Date && !isNaN(v)){return `${v.getFullYear()}-${pad(v.getMonth()+1)}-${pad(v.getDate())}`}
+  if(typeof v==='number' && window.XLSX){const d=XLSX.SSF.parse_date_code(v);if(d)return `${d.y}-${pad(d.m)}-${pad(d.d)}`}
+  const s=cleanCell(v);
+  let m=s.match(/(20\d{2})[\/\-.年](\d{1,2})[\/\-.月](\d{1,2})/);
+  if(m)return `${m[1]}-${pad(+m[2])}-${pad(+m[3])}`;
+  m=s.match(/(\d{1,2})[\/\-.月](\d{1,2})/);
+  if(m)return `${current.getFullYear()}-${pad(+m[1])}-${pad(+m[2])}`;
+  return '';
+}
+function parseTimeRange(text){
+  const hits=[...cleanCell(text).matchAll(/(?:^|\s)(\d{1,2}):(\d{2})(?=\s|$)/g)].map(m=>`${pad(+m[1])}:${m[2]}`);
+  return {startTime:hits[0]||'',endTime:hits.length?hits[hits.length-1]:''};
+}
+function normalizeHeader(h){return cleanCell(h).replace(/[\s　・]/g,'').toLowerCase()}
+function parseThunderbirdsExcel(workbook){
+  const sheet=workbook.Sheets[workbook.SheetNames[0]];
+  const rows=XLSX.utils.sheet_to_json(sheet,{header:1,defval:'',raw:true});
+  if(!rows.length) return [];
+  let headerRow=-1, cols={};
+  for(let r=0;r<Math.min(rows.length,20);r++){
+    const map={}; rows[r].forEach((v,i)=>map[normalizeHeader(v)]=i);
+    const dateKey=Object.keys(map).find(k=>k==='日付'||k.includes('日付'));
+    const titleKey=Object.keys(map).find(k=>k==='予定'||k.includes('予定'));
+    if(dateKey && titleKey){headerRow=r; cols={date:map[dateKey],title:map[titleKey]};
+      for(const [k,i] of Object.entries(map)){
+        if(k.includes('場所'))cols.location=i;
+        if(k.includes('時間')||k.includes('内容'))cols.schedule=i;
+        if(k.includes('持ち物'))cols.belongings=i;
+        if(k.includes('備考'))cols.notes=i;
+      }
+      break;
+    }
+  }
+  if(headerRow<0) throw new Error('見出し行を見つけられません。列名「日付」「予定」が必要です。');
+  const blocks=[];
+  for(let r=headerRow+1;r<rows.length;r++){
+    const row=rows[r], start=excelDateToISO(row[cols.date]);
+    if(!start) continue;
+    const title=cleanCell(row[cols.title]);
+    const location=cols.location!=null?cleanCell(row[cols.location]):'';
+    const schedule=cols.schedule!=null?cleanCell(row[cols.schedule]):'';
+    const belongings=cols.belongings!=null?cleanCell(row[cols.belongings]):'';
+    const notes=cols.notes!=null?cleanCell(row[cols.notes]):'';
+    const times=parseTimeRange(schedule);
+    blocks.push({start,end:start,title,location,startTime:times.startTime,endTime:times.endTime,schedule,belongings,notes,matches:[],enabled:true});
+  }
+  return blocks;
+}
+function normTitle(s){return cleanCell(s).replace(/[（）()\s　※]/g,'').replace(/ナイター/g,'').toLowerCase()}
+async function matchImportBlocks(blocks){
+  if(!sb)throw new Error('Supabaseに接続されていません。');
+  for(const b of blocks){
+    const {data,error}=await sb.from('family_events').select('*').eq('member_index',MAKI_INDEX).gte('event_date',b.start).lte('event_date',b.end).order('event_date');
+    if(error)throw error;
+    let candidates=(data||[]).filter(e=>String(e.memo||'').includes('サンダーバーズユース'));
+    if(candidates.length>1 && b.title){
+      const nt=normTitle(b.title); const narrowed=candidates.filter(e=>{const et=normTitle(e.title);return et===nt||et.includes(nt)||nt.includes(et)});
+      if(narrowed.length)candidates=narrowed;
+    }
+    b.matches=candidates;
+  }
+  return blocks;
+}
+function renderImportReview(){
+  const list=$('reviewList');list.innerHTML='';
+  parsedImportBlocks.forEach((b,i)=>{
+    const card=document.createElement('div');card.className='review-card';
+    const mt=b.matches.length?`${b.matches.length}件一致：${b.matches.map(x=>`${x.event_date} ${x.title}`).join(' / ')}`:'一致する既存予定なし';
+    card.innerHTML=`<div class="review-head"><strong>${esc(b.start)}　${esc(b.title||'')}</strong><label style="display:flex;gap:5px;align-items:center"><input style="width:auto" type="checkbox" class="imp-enabled" data-i="${i}" ${b.matches.length?'checked':''}>反映</label></div><div class="${b.matches.length?'match-ok':'match-ng'}">${esc(mt)}</div><div class="review-grid" style="margin-top:8px"><div class="field"><label>開始時間</label><input class="imp-start" data-i="${i}" type="time" value="${esc(b.startTime)}"></div><div class="field"><label>終了時間</label><input class="imp-end" data-i="${i}" type="time" value="${esc(b.endTime)}"></div></div><div class="field"><label>場所</label><input class="imp-location" data-i="${i}" value="${esc(b.location)}"></div><div class="field"><label>当日の予定</label><textarea class="imp-schedule" data-i="${i}">${esc(b.schedule)}</textarea></div><div class="field"><label>持ち物</label><textarea class="imp-belongings" data-i="${i}">${esc(b.belongings)}</textarea></div><div class="field"><label>備考</label><textarea class="imp-notes" data-i="${i}">${esc(b.notes)}</textarea></div>`;
+    list.appendChild(card);
+  });
+}
+function collectReviewEdits(){
+  document.querySelectorAll('.imp-enabled').forEach(el=>parsedImportBlocks[+el.dataset.i].enabled=el.checked);
+  document.querySelectorAll('.imp-start').forEach(el=>parsedImportBlocks[+el.dataset.i].startTime=el.value);
+  document.querySelectorAll('.imp-end').forEach(el=>parsedImportBlocks[+el.dataset.i].endTime=el.value);
+  document.querySelectorAll('.imp-location').forEach(el=>parsedImportBlocks[+el.dataset.i].location=el.value.trim());
+  document.querySelectorAll('.imp-schedule').forEach(el=>parsedImportBlocks[+el.dataset.i].schedule=el.value.trim());
+  document.querySelectorAll('.imp-belongings').forEach(el=>parsedImportBlocks[+el.dataset.i].belongings=el.value.trim());
+  document.querySelectorAll('.imp-notes').forEach(el=>parsedImportBlocks[+el.dataset.i].notes=el.value.trim());
+}
+function buildImportedMemo(existing,b){
+  let base=String(existing||'').split('【週予定詳細】')[0].trim(),parts=[];
+  if(b.location)parts.push(`場所：${b.location}`);
+  if(b.schedule)parts.push(`【当日の予定】\n${b.schedule}`);
+  if(b.belongings)parts.push(`【持ち物】\n${b.belongings}`);
+  if(b.notes)parts.push(`【備考】\n${b.notes}`);
+  return `${base}${base?'\n\n':''}【週予定詳細】\n${parts.join('\n\n')}`.trim();
+}
+async function applyImport(){
+  collectReviewEdits();
+  const targets=parsedImportBlocks.filter(b=>b.enabled&&b.matches.length);
+  if(!targets.length){alert('反映できる予定がありません。');return}
+  $('applyImportBtn').disabled=true;$('importStatus').textContent='予定へ反映しています…';
+  try{
+    let count=0;
+    for(const b of targets){
+      for(const e of b.matches){
+        const payload={memo:buildImportedMemo(e.memo,b)};
+        if(b.startTime||b.endTime){payload.all_day=false;payload.start_time=b.startTime||null;payload.end_time=b.endTime||null}
+        const {error}=await sb.from('family_events').update(payload).eq('id',e.id);if(error)throw error;count++;
+      }
+    }
+    if(importSourceFile&&targets.length){const ps=targets.map(x=>x.start).sort()[0],pe=targets.map(x=>x.end).sort().slice(-1)[0];await uploadSourceFile(importSourceFile,'weekly',ps,pe)}
+    $('importStatus').textContent=`${count}件の昌輝の予定へ反映し、週間予定表Excelも保存しました。`;
+    await loadEvents(); alert(`${count}件の予定に時間・場所・持ち物・備考を反映し、元Excelも保存しました。`);
+  }catch(err){console.error(err);alert('反映に失敗しました: '+(err.message||err))}
+  finally{$('applyImportBtn').disabled=false}
+}
+$('importBtn').onclick=()=>{
+  $('importFile').value='';$('reviewArea').classList.add('hidden');$('importStatus').textContent='Excelファイルを選択してください。';importSourceFile=null;parsedImportBlocks=[];$('importDialog').showModal();
+};
+$('importClose').onclick=()=>$('importDialog').close();
+$('importFile').onchange=e=>{importSourceFile=e.target.files&&e.target.files[0];if(!importSourceFile)return;$('importStatus').textContent=`選択：${importSourceFile.name}。「Excelを読み取る」を押してください。`};
+$('excelReadBtn').onclick=async()=>{
+  if(!importSourceFile){alert('週間予定表のExcelファイルを選択してください。');return}
+  if(!window.XLSX){alert('Excel読取ライブラリを読み込めませんでした。インターネット接続を確認してください。');return}
+  $('excelReadBtn').disabled=true;$('importStatus').textContent='Excelを読み取っています…';
+  try{
+    const buf=await importSourceFile.arrayBuffer();
+    const book=XLSX.read(buf,{type:'array',cellDates:true});
+    parsedImportBlocks=parseThunderbirdsExcel(book);
+    if(!parsedImportBlocks.length){alert('予定データを読み取れませんでした。');return}
+    $('importStatus').textContent=`${parsedImportBlocks.length}件を読み取りました。既存の昌輝の予定と照合しています…`;
+    await matchImportBlocks(parsedImportBlocks);renderImportReview();$('reviewArea').classList.remove('hidden');
+    const matched=parsedImportBlocks.reduce((n,b)=>n+b.matches.length,0);
+    $('importStatus').textContent=`照合完了：Excel ${parsedImportBlocks.length}件 / 既存予定一致 ${matched}件。内容を確認して反映してください。`;
+  }catch(err){console.error(err);alert('Excelの読み取りに失敗しました: '+(err.message||err))}
+  finally{$('excelReadBtn').disabled=false}
+};
+$('applyImportBtn').onclick=applyImport;
+
+
+
+function isStandaloneApp(){
+  return window.matchMedia("(display-mode: standalone)").matches ||
+         window.navigator.standalone === true;
+}
+function showQrInstallNotice(){
+  const params=new URLSearchParams(location.search);
+  if(!params.get("family_setup") || isStandaloneApp()) return;
+
+  setTimeout(()=>{
+    const existing=document.getElementById("qrInstallNotice");
+    if(existing) return;
+
+    const box=document.createElement("div");
+    box.id="qrInstallNotice";
+    box.style.cssText="position:fixed;left:12px;right:12px;bottom:82px;z-index:9999;background:#fff;border:1px solid #cbd5e1;border-radius:14px;padding:12px 14px;box-shadow:0 8px 28px rgba(0,0,0,.18);font-size:13px;line-height:1.5";
+    box.innerHTML='<b>このページをそのままホーム画面に追加してください。</b><br>Safariの共有ボタン →「ホーム画面に追加」。<br><span style="color:#64748b">追加後はホーム画面から起動しても接続設定が自動復元されます。</span><button type="button" id="qrInstallNoticeClose" style="float:right;margin-top:8px;border:0;background:#e2e8f0;border-radius:8px;padding:6px 10px">閉じる</button>';
+    document.body.appendChild(box);
+    document.getElementById("qrInstallNoticeClose").onclick=()=>box.remove();
+  },500);
+}
+
+/* v2.8: 月間カレンダー横スワイプ */
+(function setupCalendarSwipe(){
+  const target=document.querySelector(".calendar-wrap");
+  if(!target) return;
+
+  let startX=0;
+  let startY=0;
+  let currentX=0;
+  let currentY=0;
+  let tracking=false;
+  let startedOnInteractive=false;
+
+  const SWIPE_MIN_X=55;
+  const MAX_VERTICAL_DRIFT=70;
+  const AXIS_RATIO=1.15;
+
+  function isInteractive(el){
+    return !!el.closest(
+      "button, input, select, textarea, a, .band, dialog, .filter-nav, .floating"
+    );
+  }
+
+  target.addEventListener("touchstart",(e)=>{
+    if(e.touches.length!==1) return;
+
+    const t=e.touches[0];
+    startX=currentX=t.clientX;
+    startY=currentY=t.clientY;
+    tracking=true;
+    startedOnInteractive=isInteractive(e.target);
+  },{passive:true});
+
+  target.addEventListener("touchmove",(e)=>{
+    if(!tracking || e.touches.length!==1) return;
+    const t=e.touches[0];
+    currentX=t.clientX;
+    currentY=t.clientY;
+  },{passive:true});
+
+  target.addEventListener("touchend",()=>{
+    if(!tracking){
+      return;
+    }
+
+    tracking=false;
+
+    // 予定帯を直接操作した場合などは月移動しない
+    if(startedOnInteractive){
+      startedOnInteractive=false;
+      return;
+    }
+
+    const dx=currentX-startX;
+    const dy=currentY-startY;
+    const absX=Math.abs(dx);
+    const absY=Math.abs(dy);
+
+    // 明確な横スワイプだけ反応
+    if(
+      absX < SWIPE_MIN_X ||
+      absY > MAX_VERTICAL_DRIFT ||
+      absX < absY * AXIS_RATIO
+    ){
+      return;
+    }
+
+    if(dx < 0){
+      // 右 → 左：次月
+      current.setMonth(current.getMonth()+1);
+    }else{
+      // 左 → 右：前月
+      current.setMonth(current.getMonth()-1);
+    }
+
+    loadEvents();
+  },{passive:true});
+
+  target.addEventListener("touchcancel",()=>{
+    tracking=false;
+    startedOnInteractive=false;
+  },{passive:true});
+})();
 
 if("serviceWorker" in navigator){
   window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js").catch(console.error));
 }
-loadSettingsUI();selectCategory("仕事");render();connect();
+const setupApplied=applySetupFromQr();
+if(setupApplied){
+  activeFilter=localStorage.getItem("calendar_filter")||"all";
+}
+loadSettingsUI();selectCategory("仕事");render();connect();showQrInstallNotice();
 </script>
 </body>
 </html>
