@@ -74,6 +74,14 @@ textarea{min-height:78px;resize:vertical}
 .hidden{display:none!important}
 @media(max-width:700px){
   :root{--row-h:96px}
+  header{position:static}
+  .topbar{display:block}
+  .topbar h1{margin-bottom:10px}
+  .month-nav{display:grid!important;grid-template-columns:48px 64px 1fr 48px;gap:6px;align-items:center}
+  .month-label{min-width:0}
+  .month-nav .source-btn,.month-nav .import-btn,#settingsBtn{grid-column:auto;white-space:normal;line-height:1.2;padding:7px 5px;font-size:11px}
+  .month-nav .source-btn:nth-of-type(5){grid-column:1/2}
+  :root{--row-h:96px}
   .topbar{flex-direction:column;align-items:flex-start}
   .month-nav{width:100%;justify-content:space-between}
   .day{padding:4px}
@@ -172,7 +180,8 @@ textarea{min-height:78px;resize:vertical}
 
 <dialog id="importDialog"><div class="modal"><h2>📷 サンダーバーズ予定表取込</h2><div class="import-note">昌輝（家族4）の既存「サンダーバーズユース」予定に、週予定表から時間・場所・持ち物・備考を追加します。反映前に必ず内容を確認できます。</div><div class="field" style="margin-top:12px"><label>予定表の写真</label><input id="importFile" type="file" accept="image/*" capture="environment"></div><img id="importPreview" class="import-preview hidden" alt="予定表プレビュー"><div id="importStatus" class="import-status">写真を選択してください。</div><div class="progress"><i id="importProgress"></i></div><div class="actions"><button class="btn" type="button" id="importClose">閉じる</button><button class="btn primary" type="button" id="ocrBtn">写真を解析</button></div><div id="ocrArea" class="hidden" style="margin-top:14px;border-top:1px solid var(--line);padding-top:14px"><div class="field"><label>OCR結果（必要なら修正できます）</label><textarea id="ocrText" class="ocr-raw"></textarea></div><div class="actions"><button class="btn primary" type="button" id="parseBtn">予定を照合</button></div></div><div id="reviewArea" class="hidden" style="margin-top:14px;border-top:1px solid var(--line);padding-top:14px"><strong>反映内容の確認</strong><div id="reviewList" class="review-list"></div><div class="actions"><button class="btn primary" type="button" id="applyImportBtn">チェックした予定を反映</button></div></div></div></dialog>
 
-<dialog id="excelImportDialog"><div class="modal"><h2>📥 昌輝 予定表 Excel取込</h2><div class="import-note">Excelの「日付」「予定」を必須列として読み込みます。「開始時刻」「終了時刻」がある予定は終日を解除して時刻付きで保存します。既存の同日・同名予定がある場合は更新します。</div><div class="field" style="margin-top:12px"><label>Excelファイル</label><input id="excelImportFile" type="file" accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"></div><div id="excelImportStatus" class="import-status">Excelを選択してください。</div><div class="actions"><button class="btn" type="button" id="excelImportClose">閉じる</button><button class="btn primary" type="button" id="excelImportRun">Excelを読み取る</button></div></div></dialog>
+
+<dialog id="excelImportDialog"><div class="modal"><h2>📥 昌輝 Excel取込</h2><div class="import-note">「日付」「予定」を読み込みます。「開始時刻」「終了時刻」がある予定は時刻付き予定として保存します。同日・同名の既存予定は更新します。</div><div class="field" style="margin-top:12px"><label>Excelファイル</label><input id="excelImportFile" type="file" accept=".xlsx,.xls"></div><div id="excelImportStatus" class="import-status">Excelを選択してください。</div><div class="actions"><button class="btn" type="button" id="excelImportClose">閉じる</button><button class="btn primary" type="button" id="excelImportRun">取り込む</button></div></div></dialog>
 
 <dialog id="sourceDialog">
 <div class="modal">
@@ -364,7 +373,7 @@ function renderBands(){
       band.style.gridRow=`${row+1}`;
       band.style.background=COLORS[idx];
       band.style.color=TEXTCOLORS[idx];
-      band.textContent=`${(!e.all_day&&e.start_time)?String(e.start_time).slice(0,5)+" ":""}${e.title}（${members[idx]||"?"}）`;
+      band.textContent=`${e.title}（${members[idx]||"?"}）`;
       band.title=`${e.event_date} ～ ${e.end_date||e.event_date}　${e.title}`;
       band.onclick=()=>openEdit(e);
       overlay.appendChild(band);
@@ -479,63 +488,7 @@ $("settingsSave").onclick=async()=>{
 };
 
 
-
-// ===== Excel予定取込 v2.4 =====
-function excelDateToISO(v){
-  if(v==null||v==='') return '';
-  if(v instanceof Date && !isNaN(v)) return `${v.getFullYear()}-${pad(v.getMonth()+1)}-${pad(v.getDate())}`;
-  if(typeof v==='number'){
-    const p=XLSX.SSF.parse_date_code(v); if(p) return `${p.y}-${pad(p.m)}-${pad(p.d)}`;
-  }
-  const t=String(v).trim();
-  let m=t.match(/^(\d{4})[\/-](\d{1,2})[\/-](\d{1,2})/); if(m)return `${m[1]}-${pad(+m[2])}-${pad(+m[3])}`;
-  m=t.match(/^(\d{1,2})[\/-](\d{1,2})$/); if(m)return `${current.getFullYear()}-${pad(+m[1])}-${pad(+m[2])}`;
-  const d=new Date(t); return isNaN(d)?'':ymd(d);
-}
-function excelTimeToHHMM(v){
-  if(v==null||v==='') return '';
-  if(v instanceof Date && !isNaN(v)) return `${pad(v.getHours())}:${pad(v.getMinutes())}`;
-  if(typeof v==='number'){
-    const mins=Math.round((((v%1)+1)%1)*24*60)%1440; return `${pad(Math.floor(mins/60))}:${pad(mins%60)}`;
-  }
-  let t=String(v).trim().replace(/：/g,':');
-  let m=t.match(/(\d{1,2}):(\d{1,2})/); if(m)return `${pad(+m[1])}:${pad(+m[2])}`;
-  m=t.match(/^(\d{1,2})(\d{2})$/); if(m)return `${pad(+m[1])}:${pad(+m[2])}`;
-  return '';
-}
-function excelBool(v){
-  if(typeof v==='boolean') return v;
-  const t=String(v??'').trim().toLowerCase(); return ['true','1','yes','y','○','〇','終日'].includes(t);
-}
-function inferCategory(title){const t=String(title||'');if(/大会|試合|カップ/.test(t))return '習い事';if(/練習/.test(t))return '習い事';return 'その他'}
-async function importCalendarExcel(file){
-  if(!sb) throw new Error('先にSupabaseへ接続してください。');
-  if(!window.XLSX) throw new Error('Excel読込ライブラリを読み込めません。インターネット接続を確認してください。');
-  const data=await file.arrayBuffer(), book=XLSX.read(data,{type:'array',cellDates:true});
-  const sheet=book.Sheets[book.SheetNames[0]], rows=XLSX.utils.sheet_to_json(sheet,{defval:'',raw:true});
-  if(!rows.length) throw new Error('Excelに予定データがありません。');
-  const headers=Object.keys(rows[0]).map(x=>String(x).trim());
-  if(!headers.includes('日付')||!headers.includes('予定')) throw new Error('見出し行を見つけられません。列名「日付」「予定」が必要です。');
-  let added=0,updated=0,skipped=0;
-  for(const r0 of rows){
-    const r={}; for(const [k,v] of Object.entries(r0))r[String(k).trim()]=v;
-    const date=excelDateToISO(r['日付']), title=String(r['予定']||'').trim(); if(!date||!title){skipped++;continue}
-    const st=excelTimeToHHMM(r['開始時刻']), et=excelTimeToHHMM(r['終了時刻']);
-    const hasTime=!!(st||et), allDay=hasTime?false:excelBool(r['終日']);
-    const place=String(r['場所']||'').trim(), note=String(r['備考']||'').trim();
-    const memo=[place?`場所：${place}`:'',note].filter(Boolean).join('\n');
-    const payload={event_date:date,end_date:date,member_index:MAKI_INDEX,all_day:allDay,start_time:allDay?null:(st||null),end_time:allDay?null:(et||null),category:inferCategory(title),title,memo};
-    const {data:found,error:findErr}=await sb.from('family_events').select('id').eq('member_index',MAKI_INDEX).eq('event_date',date).eq('title',title).limit(1); if(findErr)throw findErr;
-    if(found&&found.length){const {error}=await sb.from('family_events').update(payload).eq('id',found[0].id);if(error)throw error;updated++}
-    else{const {error}=await sb.from('family_events').insert(payload);if(error)throw error;added++}
-  }
-  await loadEvents(); return {added,updated,skipped};
-}
-$('excelImportBtn').onclick=()=>{$('excelImportFile').value='';$('excelImportStatus').textContent='Excelを選択してください。';$('excelImportDialog').showModal()};
-$('excelImportClose').onclick=()=>$('excelImportDialog').close();
-$('excelImportRun').onclick=async()=>{const f=$('excelImportFile').files&&$('excelImportFile').files[0];if(!f){alert('Excelファイルを選択してください。');return}$('excelImportRun').disabled=true;$('excelImportStatus').textContent='Excelを読み込んでカレンダーへ反映しています…';try{const r=await importCalendarExcel(f);$('excelImportStatus').textContent=`完了：新規 ${r.added}件、更新 ${r.updated}件、スキップ ${r.skipped}件`;alert(`Excel取込完了\n新規 ${r.added}件\n更新 ${r.updated}件\nスキップ ${r.skipped}件`)}catch(e){console.error(e);$('excelImportStatus').textContent='失敗：'+(e.message||e);alert('Excelの読み取りに失敗しました: '+(e.message||e))}finally{$('excelImportRun').disabled=false}};
-// ===== /Excel予定取込 v2.4 =====
-
+\n// ===== Excel時刻取込（v2.3最小変更版） =====\nfunction excelDateISO(v){if(v==null||v==='')return'';if(v instanceof Date&&!isNaN(v))return `${v.getFullYear()}-${pad(v.getMonth()+1)}-${pad(v.getDate())}`;if(typeof v==='number'){const p=XLSX.SSF.parse_date_code(v);return p?`${p.y}-${pad(p.m)}-${pad(p.d)}`:''}const t=String(v).trim(),m=t.match(/^(\d{4})[\/-](\d{1,2})[\/-](\d{1,2})/);return m?`${m[1]}-${pad(+m[2])}-${pad(+m[3])}`:''}\nfunction excelTime(v){if(v==null||v==='')return'';if(v instanceof Date&&!isNaN(v))return `${pad(v.getHours())}:${pad(v.getMinutes())}`;if(typeof v==='number'){const mins=Math.round((((v%1)+1)%1)*1440)%1440;return `${pad(Math.floor(mins/60))}:${pad(mins%60)}`}const m=String(v).trim().replace(/：/g,':').match(/(\d{1,2}):(\d{2})/);return m?`${pad(+m[1])}:${pad(+m[2])}`:''}\nfunction excelAllDay(v){if(typeof v==='boolean')return v;return ['true','1','yes','y','○','〇','終日'].includes(String(v??'').trim().toLowerCase())}\nasync function importExcelSchedule(file){if(!sb)throw new Error('Supabaseに接続されていません。今まで使っていた接続状態を確認してください。');if(!window.XLSX)throw new Error('Excel読込ライブラリを読み込めません。');const book=XLSX.read(await file.arrayBuffer(),{type:'array',cellDates:true});const rows=XLSX.utils.sheet_to_json(book.Sheets[book.SheetNames[0]],{defval:'',raw:true});if(!rows.length)throw new Error('Excelに予定がありません。');const heads=Object.keys(rows[0]).map(x=>String(x).trim());if(!heads.includes('日付')||!heads.includes('予定'))throw new Error('列名「日付」「予定」が必要です。');let added=0,updated=0,skipped=0;for(const raw of rows){const r={};for(const[k,v]of Object.entries(raw))r[String(k).trim()]=v;const date=excelDateISO(r['日付']),title=String(r['予定']||'').trim();if(!date||!title){skipped++;continue}const st=excelTime(r['開始時刻']),et=excelTime(r['終了時刻']),timed=!!(st||et),place=String(r['場所']||'').trim(),note=String(r['備考']||'').trim();const payload={event_date:date,end_date:date,member_index:MAKI_INDEX,all_day:timed?false:excelAllDay(r['終日']),start_time:timed?(st||null):null,end_time:timed?(et||null):null,category:/練習|試合|大会|カップ/.test(title)?'習い事':'その他',title,memo:[place?`場所：${place}`:'',note].filter(Boolean).join('\n')};const {data:found,error:fe}=await sb.from('family_events').select('id').eq('member_index',MAKI_INDEX).eq('event_date',date).eq('title',title).limit(1);if(fe)throw fe;if(found?.length){const {error}=await sb.from('family_events').update(payload).eq('id',found[0].id);if(error)throw error;updated++}else{const {error}=await sb.from('family_events').insert(payload);if(error)throw error;added++}}await loadEvents();return{added,updated,skipped}}\n$('excelImportBtn').onclick=()=>{$('excelImportFile').value='';$('excelImportStatus').textContent='Excelを選択してください。';$('excelImportDialog').showModal()};$('excelImportClose').onclick=()=>$('excelImportDialog').close();$('excelImportRun').onclick=async()=>{const f=$('excelImportFile').files?.[0];if(!f){alert('Excelファイルを選択してください。');return}const b=$('excelImportRun');b.disabled=true;$('excelImportStatus').textContent='取り込み中…';try{const r=await importExcelSchedule(f);$('excelImportStatus').textContent=`完了：新規${r.added}件・更新${r.updated}件・スキップ${r.skipped}件`;alert('Excel取込が完了しました。')}catch(e){console.error(e);$('excelImportStatus').textContent='失敗：'+(e.message||e);alert('Excel取込に失敗しました：'+(e.message||e))}finally{b.disabled=false}};\n// ===== /Excel時刻取込 =====\n
 const SOURCE_BUCKET='family-schedule-sources';\nlet currentSourceType='monthly';\nfunction monthRange(){const y=current.getFullYear(),m=current.getMonth();const a=new Date(y,m,1),b=new Date(y,m+1,0);return{start:ymd(a),end:ymd(b)}}\nfunction extOf(file){const n=(file&&file.name)||'';const m=n.match(/\\.([a-zA-Z0-9]+)$/);return m?m[1].toLowerCase():(file&&file.type==='image/png'?'png':'jpg')}\nasync function uploadSourceFile(file,type,periodStart,periodEnd){\n  if(!sb)throw new Error('Supabaseに接続されていません。');\n  const ext=extOf(file),safeType=type==='monthly'?'monthly':'weekly';\n  const path=`maki/${safeType}/${periodStart}_${Date.now()}_${Math.random().toString(36).slice(2,8)}.${ext}`;\n  const {error:upErr}=await sb.storage.from(SOURCE_BUCKET).upload(path,file,{contentType:file.type||'image/jpeg',upsert:false});\n  if(upErr)throw upErr;\n  const {error:dbErr}=await sb.from('schedule_sources').insert({source_type:safeType,member_index:MAKI_INDEX,period_start:periodStart,period_end:periodEnd,file_path:path,file_name:file.name||`${safeType}.${ext}`});\n  if(dbErr){await sb.storage.from(SOURCE_BUCKET).remove([path]);throw dbErr}\n  return path;\n}\nasync function openSourceImage(path){\n  const {data,error}=await sb.storage.from(SOURCE_BUCKET).createSignedUrl(path,300);\n  if(error)throw error;\n  window.open(data.signedUrl,'_blank','noopener');\n}\nasync function loadSourceList(type){\n  currentSourceType=type;\n  const range=monthRange();\n  $('sourceDialogTitle').textContent=type==='monthly'?'📅 月間元予定':'📄 週間元予定';\n  $('sourceDialogNote').textContent=type==='monthly'?'表示中の月の月間予定表写真を保存・参照できます。':'表示中の月に関係する週間予定表の原本写真です。予定表取込時に自動保存されます。';\n  $('monthlyUploadArea').classList.toggle('hidden',type!=='monthly');\n  $('sourceStatus').textContent='元予定表を読み込んでいます…'; $('sourceList').innerHTML='';\n  let q=sb.from('schedule_sources').select('*').eq('member_index',MAKI_INDEX).eq('source_type',type).lte('period_start',range.end).gte('period_end',range.start).order('created_at',{ascending:false});\n  const {data,error}=await q;if(error)throw error;\n  const rows=data||[];$('sourceStatus').textContent=rows.length?`${rows.length}件あります。`:'この月の元予定表はまだありません。';\n  for(const r of rows){const c=document.createElement('div');c.className='source-card';const label=r.source_type==='monthly'?'月間予定表':'週間予定表';c.innerHTML=`<div class="source-card-head"><strong>${esc(label)}</strong><button class="btn primary source-open" type="button">開く</button></div><div class="source-meta">${esc(r.period_start)} ～ ${esc(r.period_end)}<br>${esc(r.file_name||'')}</div>`;c.querySelector('.source-open').onclick=async()=>{try{await openSourceImage(r.file_path)}catch(e){alert('元画像を開けません: '+(e.message||e))}};$('sourceList').appendChild(c)}\n}\nasync function showSourceDialog(type){\n  if(!sb){alert('先にSupabaseへ接続してください。');return}\n  $('sourceDialog').showModal();\n  try{await loadSourceList(type)}catch(e){console.error(e);$('sourceStatus').textContent='読み込みに失敗しました。v2.3-source-migration.sqlを実行してください。'}\n}\n$('monthlySourceBtn').onclick=()=>showSourceDialog('monthly');\n$('weeklySourceBtn').onclick=()=>showSourceDialog('weekly');\n$('sourceCloseBtn').onclick=()=>$('sourceDialog').close();\n$('monthlySourceUploadBtn').onclick=async()=>{const f=$('monthlySourceFile').files&&$('monthlySourceFile').files[0];if(!f){alert('月間予定表の写真を選択してください。');return}const r=monthRange();$('monthlySourceUploadBtn').disabled=true;$('sourceStatus').textContent='月間予定表を保存しています…';try{await uploadSourceFile(f,'monthly',r.start,r.end);$('monthlySourceFile').value='';await loadSourceList('monthly');alert('月間予定表の元画像を保存しました。')}catch(e){console.error(e);alert('保存に失敗しました: '+(e.message||e))}finally{$('monthlySourceUploadBtn').disabled=false}};\n\nlet importImageFile=null,parsedImportBlocks=[]; const MAKI_INDEX=3;
 function normalizeOCRText(s){const fw='０１２３４５６７８９';s=String(s||'').replace(/[０-９]/g,c=>String(fw.indexOf(c)));return s.replace(/：/g,':').replace(/＠/g,'@').replace(/～/g,'〜').replace(/[\u00A0\t]+/g,' ').replace(/ +/g,' ')}
 function isoDate(y,m,d){return `${y}-${pad(m)}-${pad(d)}`}

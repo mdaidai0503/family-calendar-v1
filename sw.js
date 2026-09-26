@@ -1,4 +1,4 @@
-const CACHE="family-calendar-v2.4-excel-time-fixed";
+const CACHE="family-calendar-v2.3.1-excel-time-minimal";
 const ASSETS=["./","./index.html","./manifest.webmanifest"];
 self.addEventListener("install",e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS))));
 self.addEventListener("activate",e=>e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k))))));
