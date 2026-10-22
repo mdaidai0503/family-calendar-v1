@@ -387,7 +387,7 @@ textarea{min-height:78px;resize:vertical}
   <h2>📷 週間予定表を写真から取込</h2>
   <div class="import-note">
     元写真を保存し、AI画像解析で日付・時間・場所・持ち物・備考を読み取ってExcelデータを自動生成します。
-    その後、昌輝（家族4）の既存予定と照合し、反映前に必ず内容を確認・修正できます。
+    その後、昌輝（家族4）の同じ日付・期間・予定名の予定を更新し、未登録なら新規追加します。反映前に必ず内容を確認・修正できます。
   </div>
   <div class="field" style="margin-top:12px">
     <label>週間予定表の写真</label>
@@ -1081,10 +1081,28 @@ $("eventForm").addEventListener("submit",async e=>{
     memo:$("memo").value.trim()
   };
   const id=$("eventId").value;
-  const q=id?sb.from("family_events").update(payload).eq("id",id):sb.from("family_events").insert(payload);
-  const {error}=await q;
-  if(error){alert("保存に失敗しました: "+error.message);return}
-  $("eventDialog").close(); await loadEvents();
+  const button=$('eventForm').querySelector('[type="submit"]');
+  if(button.disabled)return;
+  button.disabled=true;
+  try{
+    await withEventWriteLock(async()=>{
+      const {data,error}=await sb.from('family_events').select('*').eq('member_index',payload.member_index).eq('event_date',payload.event_date);
+      if(error)throw error;
+      const duplicate=(data||[]).some(x=>String(x.id)!==String(id)&&(x.end_date||x.event_date)===payload.end_date&&exactImportTitle(x.title)===exactImportTitle(payload.title));
+      if(duplicate)throw new Error('同じ日付・期間・家族・予定名の予定が登録済みです。既存予定を開いて編集してください。');
+      if(id){
+        const original=events.find(x=>String(x.id)===String(id));
+        if(!original)throw new Error('元の予定を確認できません。再読込してください。');
+        await checkedEventUpdate(original,payload);
+      }else{
+        const result=await sb.from('family_events').insert(payload).select('id');
+        if(result.error)throw result.error;
+        if(!result.data||result.data.length!==1)throw new Error('登録結果を確認できません。再読込してください。');
+      }
+    });
+    $('eventDialog').close();await loadEvents();
+  }catch(err){alert('保存に失敗しました: '+(err.message||err))}
+  finally{button.disabled=false}
 });
 
 $("duplicateBtn").onclick=()=>{
@@ -1336,23 +1354,7 @@ function makePhotoExcelFile(blocks){
   });
 }
 async function matchPhotoBlocks(blocks){
-  for(const b of blocks){
-    const {data,error}=await sb.from('family_events').select('*')
-      .eq('member_index',PHOTO_MAKI_INDEX)
-      .gte('event_date',b.start).lte('event_date',b.end)
-      .order('event_date');
-    if(error)throw error;
-    let candidates=(data||[]).filter(e=>String(e.memo||'').includes('サンダーバーズユース'));
-    if(candidates.length>1&&b.title){
-      const nt=normTitle(b.title);
-      const narrowed=candidates.filter(e=>{
-        const et=normTitle(e.title);
-        return et===nt||et.includes(nt)||nt.includes(et);
-      });
-      if(narrowed.length)candidates=narrowed;
-    }
-    b.matches=candidates;
-  }
+  for(const b of blocks)b.matches=await findExcelImportMatches(b);
 }
 function renderPhotoReview(){
   const list=$('photoReviewList');
@@ -1362,10 +1364,10 @@ function renderPhotoReview(){
     card.className='review-card';
     const mt=b.matches.length
       ?`${b.matches.length}件一致：${b.matches.map(x=>`${x.event_date} ${x.title}`).join(' / ')}`
-      :'一致する既存予定なし';
+      :'新規予定：昌輝に追加（一致する既存予定なし）';
     card.innerHTML=`<div class="review-head">
       <strong>${esc(b.start)}${b.end!==b.start?' ～ '+esc(b.end):''}　${esc(b.title||'')}</strong>
-      <label style="display:flex;gap:5px;align-items:center"><input style="width:auto" type="checkbox" class="p-enabled" data-i="${i}" ${b.matches.length?'checked':''}>反映</label>
+      <label style="display:flex;gap:5px;align-items:center"><input style="width:auto" type="checkbox" class="p-enabled" data-i="${i}" ${b.enabled?'checked':''}>反映</label>
       </div>
       <div class="${b.matches.length?'match-ok':'match-ng'}">${esc(mt)}</div>
       <div class="review-grid" style="margin-top:8px">
@@ -1397,40 +1399,37 @@ async function uploadPhotoSourceIfNeeded(){
   await uploadSourceFile(photoSourceFile,'weekly',ps,pe);
   photoSourceUploaded=true;
 }
+let photoApplying=false;
 async function applyPhotoImport(){
+  if(photoApplying)return;
+  if(!sb){alert('先にSupabase接続を設定してください。');return}
   collectPhotoEdits();
-  const targets=photoParsedBlocks.filter(b=>b.enabled&&b.matches.length);
+  const targets=photoParsedBlocks.filter(b=>b.enabled);
   if(!targets.length){alert('反映できる予定がありません。');return}
-  $('photoApplyBtn').disabled=true;
-  $('photoImportStatus').textContent='カレンダーへ反映し、Excelを保存しています…';
+  photoApplying=true;
+  const controls=['photoApplyBtn','photoOcrBtn','photoImportFile','photoImportBtn'];
+  // 操作中に取込元を入れ替えない。
+  const disabled=[];
+  for(const id of controls){const el=$(id);if(el){disabled.push([el,el.disabled]);el.disabled=true}}
+  let added=0,updated=0;
   try{
-    let count=0;
-    for(const b of targets){
-      for(const e of b.matches){
-        const payload={memo:buildImportedMemo(e.memo,b)};
-        if(b.startTime||b.endTime){
-          payload.all_day=false;
-          payload.start_time=b.startTime||null;
-          payload.end_time=b.endTime||null;
-        }
-        const {error}=await sb.from('family_events').update(payload).eq('id',e.id);
-        if(error)throw error;
-        count++;
-      }
-    }
-    photoGeneratedExcelFile=makePhotoExcelFile(photoParsedBlocks);
-    const ps=photoParsedBlocks.map(x=>x.start).sort()[0];
-    const pe=photoParsedBlocks.map(x=>x.end).sort().slice(-1)[0];
+    targets.forEach(validateImportBlock);
+    await withEventWriteLock(async()=>{
+      for(const b of targets){const result=await saveImportedBlock(b);if(result==='added')added++;else updated++}
+    });
+    photoGeneratedExcelFile=makePhotoExcelFile(targets);
+    const ps=targets.map(x=>x.start).sort()[0],pe=targets.map(x=>x.end).sort().slice(-1)[0];
     await uploadSourceFile(photoGeneratedExcelFile,'weekly',ps,pe);
     await uploadPhotoSourceIfNeeded();
     await loadEvents();
-    $('photoImportStatus').textContent=`${count}件へ反映しました。元写真と自動生成Excelを保存済みです。`;
-    alert(`${count}件の予定へ反映しました。元写真は「週間元予定」から確認できます。`);
+    await matchPhotoBlocks(photoParsedBlocks);renderPhotoReview();
+    const message='昌輝の予定：新規追加 '+added+'件 / 更新 '+updated+'件。元写真とExcelを保存しました。';
+    $('photoImportStatus').textContent=message;alert(message);
   }catch(err){
-    console.error(err);
-    alert('反映に失敗しました: '+(err.message||err));
+    const message='反映を中断しました（新規追加 '+added+'件 / 更新 '+updated+'件は保存済み）。再反映前に予定を確認してください。元ファイルの保存が未完了の可能性があります。\n'+(err.message||err);
+    $('photoImportStatus').textContent=message;alert(message);await loadEvents();
   }finally{
-    $('photoApplyBtn').disabled=false;
+    photoApplying=false;for(const [el,value] of disabled)el.disabled=value;
   }
 }
 async function imageFileToDataUrl(file){
@@ -1610,20 +1609,62 @@ function parseThunderbirdsExcel(workbook){
 function normTitle(s){return cleanCell(s).replace(/[（）()\s　※]/g,'').replace(/ナイター/g,'').toLowerCase()}
 function excelImportTitle(b){return cleanCell(b.title)||'サンダーバーズユース'}
 function exactImportTitle(s){return cleanCell(s).replace(/[\s　]/g,'').toLowerCase()}
+function validateImportBlock(b){
+  const validDate=v=>/^\d{4}-\d{2}-\d{2}$/.test(v||'') && !isNaN(Date.parse(v)) && new Date(v).toISOString().slice(0,10)===v;
+  if(!validDate(b.start)||!validDate(b.end)||b.end<b.start)throw new Error('取込予定の日付を確認してください。');
+  if(!cleanCell(b.title))throw new Error(b.start+'：予定名が空欄です。予定名を入力してください。');
+  for(const t of [b.startTime,b.endTime])if(t&&!/^([01]\d|2[0-3]):[0-5]\d$/.test(t))throw new Error('時刻を確認してください。');
+  if(b.start===b.end&&b.startTime&&b.endTime&&b.endTime<b.startTime)throw new Error(b.start+'：終了時間が開始時間より前です。');
+}
 async function findExcelImportMatches(b){
+  validateImportBlock(b);
   const {data,error}=await sb.from('family_events').select('*').eq('member_index',MAKI_INDEX).gte('event_date',b.start).lte('event_date',b.end).order('event_date');
   if(error)throw error;
-  // 同日・同名は元メモの有無にかかわらず再利用する。表示月の予定だけでは照合しない。
-  const exact=(data||[]).filter(e=>e.event_date===b.start && (e.end_date||e.event_date)===b.end && exactImportTitle(e.title)===exactImportTitle(excelImportTitle(b)));
-  if(exact.length)return exact;
-  // 従来の月間予定との照合を維持。Excelで新規作成した別名の予定は候補にしない。
-  let candidates=(data||[]).filter(e=>String(e.memo||'').includes('サンダーバーズユース') && !String(e.memo||'').includes('【Excel新規予定】'));
-  if(candidates.length>1 && b.title){
-    const nt=normTitle(b.title);
-    const narrowed=candidates.filter(e=>{const et=normTitle(e.title);return et===nt||et.includes(nt)||nt.includes(et)});
-    if(narrowed.length)candidates=narrowed;
+  // 日付範囲・本人・予定名が一致する行だけ更新する。メモだけで別の予定を選ばない。
+  const matches=(data||[]).filter(e=>e.event_date===b.start && (e.end_date||e.event_date)===b.end && exactImportTitle(e.title)===exactImportTitle(b.title));
+  if(matches.length>1)throw new Error(b.start+' '+b.title+'：同じ予定が複数あります。既存予定を確認してください（変更していません）。');
+  return matches;
+}
+let eventWriteBusy=false;
+async function withEventWriteLock(action){
+  if(eventWriteBusy)throw new Error('予定を保存中です。完了後に操作してください。');
+  eventWriteBusy=true;
+  try{
+    if(navigator.locks)return await navigator.locks.request('family-calendar-events',action);
+    return await action();
+  }finally{eventWriteBusy=false}
+}
+async function checkedEventUpdate(e,payload){
+  // SELECT権限不足や他端末の同時編集を成功と扱わない。
+  let q=sb.from('family_events').update(payload).eq('id',e.id).eq('member_index',e.member_index);
+  for(const k of Object.keys(payload))q=e[k]==null?q.is(k,null):q.eq(k,e[k]);
+  const {data,error}=await q.select('id');
+  if(error)throw error;
+  if(!data||data.length!==1)throw new Error('予定が更新されているか、更新権限がありません。再読込して確認してください。');
+}
+async function saveImportedBlock(b){
+  b.matches=await findExcelImportMatches(b);
+  if(b.matches.length){
+    const e=b.matches[0],payload={memo:buildImportedMemo(e.memo,b)};
+    if(b.startTime||b.endTime){
+      payload.all_day=false;
+      if(b.startTime)payload.start_time=b.startTime;
+      if(b.endTime)payload.end_time=b.endTime;
+      const start=payload.start_time||e.start_time,end=payload.end_time||e.end_time;
+      if(b.start===b.end&&start&&end&&end<start)throw new Error(b.start+'：既存時刻と合わせると終了時間が開始時間より前になります。両方の時刻を確認してください。');
+    }
+    await checkedEventUpdate(e,payload);
+    return 'updated';
   }
-  return candidates;
+  const timed=!!(b.startTime||b.endTime);
+  const payload={event_date:b.start,end_date:b.end,member_index:MAKI_INDEX,
+    title:cleanCell(b.title),category:'習い事',all_day:!timed,
+    start_time:b.startTime||null,end_time:b.endTime||null,
+    memo:buildImportedMemo('サンダーバーズユース',b)};
+  const {data,error}=await sb.from('family_events').insert(payload).select('id');
+  if(error)throw error;
+  if(!data||data.length!==1)throw new Error('登録結果を確認できません。再読込して確認してください。');
+  return 'added';
 }
 async function matchImportBlocks(blocks){
   if(!sb)throw new Error('Supabaseに接続されていません。');
@@ -1637,11 +1678,12 @@ function renderImportReview(){
   parsedImportBlocks.forEach((b,i)=>{
     const card=document.createElement('div');card.className='review-card';
     const mt=b.matches.length?`${b.matches.length}件一致：${b.matches.map(x=>`${x.event_date} ${x.title}`).join(' / ')}`:'新規予定：昌輝に追加（一致する既存予定なし）';
-    card.innerHTML=`<div class="review-head"><strong>${esc(b.start)}　${esc(b.title||'')}</strong><label style="display:flex;gap:5px;align-items:center"><input style="width:auto" type="checkbox" class="imp-enabled" data-i="${i}" ${b.enabled?'checked':''}>反映</label></div><div class="${b.matches.length?'match-ok':'match-ng'}">${esc(mt)}</div><div class="review-grid" style="margin-top:8px"><div class="field"><label>開始時間</label><input class="imp-start" data-i="${i}" type="time" value="${esc(b.startTime)}"></div><div class="field"><label>終了時間</label><input class="imp-end" data-i="${i}" type="time" value="${esc(b.endTime)}"></div></div><div class="field"><label>場所</label><input class="imp-location" data-i="${i}" value="${esc(b.location)}"></div><div class="field"><label>当日の予定</label><textarea class="imp-schedule" data-i="${i}">${esc(b.schedule)}</textarea></div><div class="field"><label>持ち物</label><textarea class="imp-belongings" data-i="${i}">${esc(b.belongings)}</textarea></div><div class="field"><label>備考</label><textarea class="imp-notes" data-i="${i}">${esc(b.notes)}</textarea></div>`;
+    card.innerHTML=`<div class="review-head"><strong>${esc(b.start)}　${esc(b.title||'')}</strong><label style="display:flex;gap:5px;align-items:center"><input style="width:auto" type="checkbox" class="imp-enabled" data-i="${i}" ${b.enabled?'checked':''}>反映</label></div><div class="${b.matches.length?'match-ok':'match-ng'}">${esc(mt)}</div><div class="review-grid" style="margin-top:8px"><div class="field"><label>開始時間</label><input class="imp-start" data-i="${i}" type="time" value="${esc(b.startTime)}"></div><div class="field"><label>終了時間</label><input class="imp-end" data-i="${i}" type="time" value="${esc(b.endTime)}"></div></div><div class="field"><label>予定名</label><input class="imp-title" data-i="${i}" value="${esc(b.title)}"></div><div class="field"><label>場所</label><input class="imp-location" data-i="${i}" value="${esc(b.location)}"></div><div class="field"><label>当日の予定</label><textarea class="imp-schedule" data-i="${i}">${esc(b.schedule)}</textarea></div><div class="field"><label>持ち物</label><textarea class="imp-belongings" data-i="${i}">${esc(b.belongings)}</textarea></div><div class="field"><label>備考</label><textarea class="imp-notes" data-i="${i}">${esc(b.notes)}</textarea></div>`;
     list.appendChild(card);
   });
 }
 function collectReviewEdits(){
+  document.querySelectorAll('.imp-title').forEach(el=>parsedImportBlocks[+el.dataset.i].title=el.value.trim());
   document.querySelectorAll('.imp-enabled').forEach(el=>parsedImportBlocks[+el.dataset.i].enabled=el.checked);
   document.querySelectorAll('.imp-start').forEach(el=>parsedImportBlocks[+el.dataset.i].startTime=el.value);
   document.querySelectorAll('.imp-end').forEach(el=>parsedImportBlocks[+el.dataset.i].endTime=el.value);
@@ -1651,12 +1693,25 @@ function collectReviewEdits(){
   document.querySelectorAll('.imp-notes').forEach(el=>parsedImportBlocks[+el.dataset.i].notes=el.value.trim());
 }
 function buildImportedMemo(existing,b){
-  let base=String(existing||'').split('【週予定詳細】')[0].trim(),parts=[];
-  if(b.location)parts.push(`場所：${b.location}`);
-  if(b.schedule)parts.push(`【当日の予定】\n${b.schedule}`);
-  if(b.belongings)parts.push(`【持ち物】\n${b.belongings}`);
-  if(b.notes)parts.push(`【備考】\n${b.notes}`);
-  return `${base}${base?'\n\n':''}【週予定詳細】\n${parts.join('\n\n')}`.trim();
+  // この版で管理する範囲だけ置換し、それ以前のメモは全文残す。
+  const start='【週予定詳細 v2】',end='【週予定詳細終了】';
+  const text=String(existing||'');
+  const a=text.indexOf(start),z=a<0?-1:text.indexOf(end,a);
+  let fields={};
+  for(const k of ['location','schedule','belongings','notes'])if(cleanCell(b[k]))fields[k]=cleanCell(b[k]);
+  // 空欄の既存値を維持する。
+  const labels={location:'場所',schedule:'当日の予定',belongings:'持ち物',notes:'備考'};
+  if(a>=0&&z>=0){
+    const old=text.slice(a+start.length,z);
+    for(const [k,label] of Object.entries(labels)){
+      const marker='【'+label+'】\n',p=old.indexOf(marker);
+      if(!cleanCell(b[k])&&p>=0){const tail=old.slice(p+marker.length);fields[k]=tail.split(/\n\n【/)[0].trim()}
+    }
+  }
+  const detail=Object.entries(labels).filter(([k])=>fields[k]).map(([k,label])=>'【'+label+'】\n'+fields[k]).join('\n\n');
+  const managed=start+'\n'+detail+'\n'+end;
+  if(a>=0&&z>=0)return text.slice(0,a)+managed+text.slice(z+end.length);
+  return text+(text?'\n\n':'')+managed;
 }
 async function applyImport(){
   if(importApplying)return;
@@ -1669,24 +1724,10 @@ async function applyImport(){
   $('excelReadBtn').disabled=true;$('importFile').disabled=true;$('importBtn').disabled=true;
   let added=0,updated=0,sourceSaved=false;
   try{
-    for(const b of targets){
-      // 保存直前に再照合。同じファイル内の重複行や再取込・失敗後の再試行にも対応する。
-      b.matches=await findExcelImportMatches(b);
-      if(b.matches.length){
-        for(const e of b.matches){
-          const payload={memo:buildImportedMemo(e.memo,b)};
-          if(b.startTime||b.endTime){payload.all_day=false;payload.start_time=b.startTime||null;payload.end_time=b.endTime||null}
-          const {error}=await sb.from('family_events').update(payload).eq('id',e.id);if(error)throw error;updated++;
-        }
-      }else{
-        const timed=!!(b.startTime||b.endTime);
-        const payload={event_date:b.start,end_date:b.end,member_index:MAKI_INDEX,
-          title:excelImportTitle(b),category:'習い事',all_day:!timed,
-          start_time:timed?(b.startTime||null):null,end_time:timed?(b.endTime||null):null,
-          memo:buildImportedMemo('サンダーバーズユース\n【Excel新規予定】',b)};
-        const {error}=await sb.from('family_events').insert(payload);if(error)throw error;added++;
-      }
-    }
+    targets.forEach(validateImportBlock);
+    await withEventWriteLock(async()=>{
+      for(const b of targets){const result=await saveImportedBlock(b);if(result==='added')added++;else updated++}
+    });
     if(importSourceFile){const ps=targets.map(x=>x.start).sort()[0],pe=targets.map(x=>x.end).sort().slice(-1)[0];await uploadSourceFile(importSourceFile,'weekly',ps,pe);sourceSaved=true}
     await loadEvents();await matchImportBlocks(parsedImportBlocks);renderImportReview();
     const message=`昌輝の予定：新規追加 ${added}件 / 更新 ${updated}件。${sourceSaved?'週間予定表Excelも保存しました。':''}`;
